@@ -24,6 +24,8 @@
 	let historyIdx = -1;
 	let pendingUpload: { target: string } | null = null;
 	let molView = $state<{ file: string; format: string; name: string } | null>(null);
+	let eventSource: EventSource | null = null;
+	let pollFallback: ReturnType<typeof setInterval> | null = null;
 
 	const C = {
 		reset: '\x1b[0m',
@@ -207,6 +209,10 @@
 		showPrompt(t);
 
 		t.onData(async (data) => {
+			if (data === '\t') {
+				await completeAt(t);
+				return;
+			}
 			for (const ch of data) {
 				if (ch === '\r') {
 					t.write('\r\n');
@@ -256,11 +262,88 @@
 
 		window.addEventListener('resize', () => fit?.fit());
 		fetchBalance();
-		setInterval(fetchBalance, 30_000);
+		startEventStream(t);
 	});
+
+	function startEventStream(t: Term) {
+		try {
+			eventSource = new EventSource('/api/events');
+			eventSource.addEventListener('balance', (e) => {
+				try {
+					const data = JSON.parse((e as MessageEvent).data);
+					balance = Number(data.cents) / 100;
+				} catch {}
+			});
+			eventSource.addEventListener('job', (e) => {
+				try {
+					const d = JSON.parse((e as MessageEvent).data);
+					const col =
+						d.status === 'completed' ? C.ok : d.status === 'failed' ? C.err : C.warn;
+					writeLine(
+						t,
+						`${C.dim}[job ${d.id.slice(0, 8)}]${C.reset} ${col}${d.status}${C.reset} ${d.tool}${
+							d.cost_cents ? ` · $${(d.cost_cents / 100).toFixed(3)}` : ''
+						}`
+					);
+					showPrompt(t);
+					t.write(buffer);
+				} catch {}
+			});
+			eventSource.onerror = () => {
+				eventSource?.close();
+				eventSource = null;
+				if (!pollFallback) pollFallback = setInterval(fetchBalance, 30_000);
+			};
+		} catch {
+			if (!pollFallback) pollFallback = setInterval(fetchBalance, 30_000);
+		}
+	}
+
+	async function completeAt(t: Term) {
+		try {
+			const res = await fetch('/api/complete', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ line: buffer, cwd, pos: buffer.length })
+			});
+			if (!res.ok) return;
+			const { completions, replaceFrom } = (await res.json()) as {
+				completions: string[];
+				replaceFrom: number;
+			};
+			if (!completions.length) return;
+			if (completions.length === 1) {
+				buffer = buffer.slice(0, replaceFrom) + completions[0];
+				eraseLine(t);
+				return;
+			}
+			// common prefix
+			const common = completions.reduce((acc, s) =>
+				acc === null ? s : commonPrefix(acc, s)
+			, null as string | null);
+			if (common && common.length > buffer.length - replaceFrom) {
+				buffer = buffer.slice(0, replaceFrom) + common;
+				eraseLine(t);
+				return;
+			}
+			// list options
+			t.write('\r\n');
+			for (const c of completions.slice(0, 30)) t.write(`  ${c}\r\n`);
+			showPrompt(t);
+			t.write(buffer);
+		} catch {}
+	}
+
+	function commonPrefix(a: string, b: string): string {
+		let i = 0;
+		while (i < a.length && i < b.length && a[i] === b[i]) i++;
+		return a.slice(0, i);
+	}
 
 	onDestroy(() => {
 		term?.dispose();
+		eventSource?.close();
+		if (pollFallback) clearInterval(pollFallback);
 	});
 </script>
 

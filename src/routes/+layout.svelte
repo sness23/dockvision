@@ -11,6 +11,7 @@
 		<div class="spacer"></div>
 		<a href="/docs">docs</a>
 		<a href="/pricing">pricing</a>
+		<a href="/status">status</a>
 		{#if data.session?.user}
 			<a href="/app">app</a>
 			<a href="/billing">billing</a>

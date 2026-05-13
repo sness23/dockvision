@@ -107,9 +107,8 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 	);
 	const jobId = inserted[0].id;
 
-	// Allocate an output prefix; handler will return base64 outputs which the
-	// worker will register under this prefix.
-	const outputPrefix = `u/${ctx.userId}/jobs/${jobId}/output`;
+	const slotCount = tool.outputSlots ?? 16;
+	const { slots, logUrl } = await files.allocOutputSlots(ctx.userId, jobId, slotCount);
 
 	const payload: JobPayload = {
 		jobId,
@@ -120,7 +119,11 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 			tool: tool.name,
 			args: validated,
 			input_urls: inputUrls,
-			output_prefix: outputPrefix,
+			output_uploads: {
+				slots: slots.map(({ idx, url }) => ({ idx, url })),
+				log_url: logUrl,
+				max_file_size_mb: 250
+			},
 			max_runtime_sec: tool.maxRuntimeSec
 		},
 		maxRuntimeSec: tool.maxRuntimeSec

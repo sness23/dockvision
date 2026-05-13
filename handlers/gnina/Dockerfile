@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip3 install --no-cache-dir runpod requests
 
 WORKDIR /app
-COPY handler.py /app/handler.py
+# Build context must be handlers/. See handlers/README.md.
+COPY _lib /app/_lib
+COPY gnina/handler.py /app/handler.py
 
 CMD ["python3", "-u", "/app/handler.py"]

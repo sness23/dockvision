@@ -1,0 +1,44 @@
+{
+	"name": "protenix",
+	"displayName": "Protenix",
+	"version": "1.0.0",
+	"description": "ByteDance's open AlphaFold3-class predictor (proteins + ligands + cofactors)",
+	"license": "Apache-2.0",
+	"upstream": "https://github.com/bytedance/Protenix",
+	"gpu": "h100",
+	"typicalRuntimeSec": 420,
+	"maxRuntimeSec": 2400,
+	"endpointEnv": "RUNPOD_PROTENIX_ENDPOINT_ID",
+	"outputSlots": 64,
+	"args": {
+		"target": {
+			"type": "path",
+			"required": true,
+			"description": "Canonical target.json or Protenix-format JSON"
+		},
+		"samples": {
+			"type": "number",
+			"required": false,
+			"default": 5,
+			"description": "Diffusion samples per seed (Protenix produces samples × seeds outputs)"
+		},
+		"seeds": {
+			"type": "number",
+			"required": false,
+			"default": 1,
+			"description": "Number of seeds"
+		},
+		"use-msa": {
+			"type": "boolean",
+			"required": false,
+			"default": true,
+			"description": "Run protenix prep (fetches MSAs from Protenix server) before predict"
+		},
+		"cycle": {
+			"type": "number",
+			"required": false,
+			"default": 4,
+			"description": "Recycling cycles"
+		}
+	}
+}

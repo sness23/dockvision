@@ -169,6 +169,41 @@ export async function registerJobOutput(opts: {
 	);
 }
 
+export interface OutputSlot {
+	idx: number;
+	url: string;
+	s3Key: string;
+}
+
+/**
+ * Pre-allocate N presigned PUT URLs for a job's outputs. Handler uploads to
+ * these directly; worker registers files by matching slot idx → S3 key.
+ * Lifts the 20MB base64 cap.
+ */
+export async function allocOutputSlots(
+	userId: number,
+	jobId: string,
+	count: number
+): Promise<{ slots: OutputSlot[]; logUrl: string; logS3Key: string }> {
+	const slots: OutputSlot[] = [];
+	for (let i = 0; i < count; i++) {
+		const s3Key = slotKey(userId, jobId, i);
+		const url = await presignedPut(s3Key, 'application/octet-stream', 6 * 3600);
+		slots.push({ idx: i, url, s3Key });
+	}
+	const logS3Key = logKey(userId, jobId);
+	const logUrl = await presignedPut(logS3Key, 'text/plain', 6 * 3600);
+	return { slots, logUrl, logS3Key };
+}
+
+export function slotKey(userId: number, jobId: string, idx: number): string {
+	return `u/${userId}/jobs/${jobId}/_slots/${idx}.bin`;
+}
+
+export function logKey(userId: number, jobId: string): string {
+	return `u/${userId}/jobs/${jobId}/log.txt`;
+}
+
 export async function totalBytes(userId: number): Promise<number> {
 	const rows = await query<{ storage_bytes: string }>(
 		'SELECT storage_bytes FROM users WHERE id = $1',

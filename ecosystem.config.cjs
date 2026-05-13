@@ -46,14 +46,16 @@ module.exports = {
 		},
 		{
 			name: 'dockvision-msa',
-			script: '/srv/dockvision-msa/serve.sh',
-			cwd: '/srv/dockvision-msa',
+			script: 'services/msa/serve.mjs',
+			cwd: '/srv/dockvision',
 			instances: 1,
 			exec_mode: 'fork',
+			env: { NODE_ENV: 'production' },
 			env_file: '/etc/dockvision/env',
 			max_memory_restart: '32G',
 			error_file: '/var/log/dockvision/msa.err.log',
-			out_file: '/var/log/dockvision/msa.out.log'
+			out_file: '/var/log/dockvision/msa.out.log',
+			autorestart: true
 		}
 	]
 };

@@ -1,0 +1,43 @@
+{
+	"name": "boltz2",
+	"displayName": "Boltz-2",
+	"version": "2.1",
+	"description": "Open-source AlphaFold3-class biomolecular structure predictor with affinity prediction",
+	"license": "MIT (verify Boltz-2 weight terms before launch)",
+	"upstream": "https://github.com/chaidiscovery/boltz",
+	"gpu": "h100",
+	"typicalRuntimeSec": 360,
+	"maxRuntimeSec": 2400,
+	"endpointEnv": "RUNPOD_BOLTZ2_ENDPOINT_ID",
+	"outputSlots": 48,
+	"args": {
+		"target": {
+			"type": "path",
+			"required": true,
+			"description": "Boltz YAML or canonical target.json file"
+		},
+		"samples": {
+			"type": "number",
+			"required": false,
+			"default": 5,
+			"description": "Number of diffusion samples (1-25)"
+		},
+		"use-msa-server": {
+			"type": "boolean",
+			"required": false,
+			"default": true,
+			"description": "Use ColabFold MMseqs2 server for MSAs"
+		},
+		"seed": {
+			"type": "number",
+			"required": false,
+			"description": "Random seed"
+		},
+		"recycling-steps": {
+			"type": "number",
+			"required": false,
+			"default": 3,
+			"description": "Number of recycling iterations"
+		}
+	}
+}

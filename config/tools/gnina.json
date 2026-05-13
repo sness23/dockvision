@@ -9,6 +9,7 @@
 	"typicalRuntimeSec": 180,
 	"maxRuntimeSec": 1800,
 	"endpointEnv": "RUNPOD_GNINA_ENDPOINT_ID",
+	"outputSlots": 16,
 	"args": {
 		"receptor": {
 			"type": "path",

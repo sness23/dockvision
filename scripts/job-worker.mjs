@@ -1,20 +1,16 @@
 #!/usr/bin/env node
 // Standalone job worker. Subscribes to pg-boss queue 'docking-jobs', dispatches
-// to RunPod, polls for completion, uploads outputs to S3, and debits the user's
-// balance. Runs as its own pm2 process.
-//
-//   node scripts/job-worker.mjs
+// to RunPod, polls for completion, registers handler-uploaded outputs from S3,
+// and debits the user's balance. Runs as its own pm2 process.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import PgBoss from 'pg-boss';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PgBoss } from 'pg-boss';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// ---------- env ----------
 function loadEnv() {
 	const envPath = path.resolve(__dirname, '..', '.env');
 	if (!fs.existsSync(envPath)) return;
@@ -31,27 +27,15 @@ const DB = process.env.DATABASE_URL;
 if (!DB) throw new Error('DATABASE_URL not set');
 const MARKUP = Number(process.env.MARKUP_MULTIPLIER ?? '1.5');
 const RUNPOD_KEY = process.env.RUNPOD_API_KEY;
-const S3_BUCKET = process.env.S3_BUCKET || 'dockvision-prod';
 const POLL_INTERVAL_MS = 5000;
+const RETENTION_DAYS = 180;
 
 const gpuRates = JSON.parse(
 	fs.readFileSync(path.resolve(__dirname, '..', 'config', 'gpu-rates.json'), 'utf8')
 );
 
-const s3 = new S3Client({
-	region: process.env.AWS_REGION || 'us-east-1',
-	credentials:
-		process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
-			? {
-					accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-					secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-				}
-			: undefined
-});
-
 const pool = new pg.Pool({ connectionString: DB });
 
-// ---------- helpers ----------
 async function runpod(method, endpointId, path, body) {
 	const res = await fetch(`https://api.runpod.ai/v2/${endpointId}${path}`, {
 		method,
@@ -71,28 +55,30 @@ function billCents(executionTimeMs, gpu) {
 	return Math.ceil((executionTimeMs / 1000) * rate.cents_per_sec * MARKUP);
 }
 
-async function uploadOutput(client, jobId, userId, file) {
-	// file: { filename, content_b64, mime }
-	const data = Buffer.from(file.content_b64, 'base64');
-	const path = `/u/${userId}/jobs/${jobId}/output/${file.filename}`;
-	const s3Key = `u/${userId}/jobs/${jobId}/output/${file.filename}`;
-	await s3.send(
-		new PutObjectCommand({
-			Bucket: S3_BUCKET,
-			Key: s3Key,
-			Body: data,
-			ContentType: file.mime || 'application/octet-stream'
-		})
-	);
-	const expires = new Date();
-	expires.setDate(expires.getDate() + 180);
+function slotKey(userId, jobId, idx) {
+	return `u/${userId}/jobs/${jobId}/_slots/${idx}.bin`;
+}
+
+function logKey(userId, jobId) {
+	return `u/${userId}/jobs/${jobId}/log.txt`;
+}
+
+function expiresAt() {
+	const d = new Date();
+	d.setDate(d.getDate() + RETENTION_DAYS);
+	return d;
+}
+
+async function registerFile(client, userId, virtualPath, s3Key, sizeBytes, mime) {
 	await client.query(
 		`INSERT INTO files (user_id, path, s3_key, size_bytes, mime, expires_at)
 		 VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (user_id, path) DO UPDATE
-		   SET s3_key=EXCLUDED.s3_key, size_bytes=EXCLUDED.size_bytes,
-		       mime=EXCLUDED.mime, expires_at=EXCLUDED.expires_at`,
-		[userId, path, s3Key, data.length, file.mime || 'application/octet-stream', expires]
+		   SET s3_key = EXCLUDED.s3_key,
+		       size_bytes = EXCLUDED.size_bytes,
+		       mime = EXCLUDED.mime,
+		       expires_at = EXCLUDED.expires_at`,
+		[userId, virtualPath, s3Key, sizeBytes, mime || 'application/octet-stream', expiresAt()]
 	);
 }
 
@@ -109,13 +95,11 @@ async function debit(client, userId, amountCents, jobId, description) {
 	]);
 }
 
-// ---------- handler ----------
 async function handle(job) {
 	const payload = job.data;
 	const { jobId, userId, tool, endpointId, input, maxRuntimeSec } = payload;
-	console.log(`[worker] ${jobId} → ${tool} on endpoint ${endpointId}`);
+	console.log(`[worker] ${jobId} → ${tool} on ${endpointId}`);
 
-	// 1. submit to RunPod
 	let submitted;
 	try {
 		submitted = await runpod('POST', endpointId, '/run', { input });
@@ -132,26 +116,21 @@ async function handle(job) {
 		[jobId, runpodJobId]
 	);
 
-	// 2. poll
 	const deadline = Date.now() + (maxRuntimeSec + 60) * 1000;
 	let last = null;
 	while (Date.now() < deadline) {
 		await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
 		last = await runpod('GET', endpointId, `/status/${runpodJobId}`);
 		if (['COMPLETED', 'FAILED', 'CANCELLED', 'TIMED_OUT'].includes(last.status)) break;
-		// Check if user cancelled or balance went negative
+
 		const r = await pool.query('SELECT status FROM jobs WHERE id=$1', [jobId]);
 		if (r.rows[0]?.status === 'cancelled') {
-			try {
-				await runpod('POST', endpointId, `/cancel/${runpodJobId}`);
-			} catch {}
+			try { await runpod('POST', endpointId, `/cancel/${runpodJobId}`); } catch {}
 			return;
 		}
 		const bal = await pool.query('SELECT balance_cents FROM users WHERE id=$1', [userId]);
 		if (Number(bal.rows[0]?.balance_cents) < 0) {
-			try {
-				await runpod('POST', endpointId, `/cancel/${runpodJobId}`);
-			} catch {}
+			try { await runpod('POST', endpointId, `/cancel/${runpodJobId}`); } catch {}
 			await pool.query(
 				`UPDATE jobs SET status='cancelled', error='balance exhausted', completed_at=now() WHERE id=$1`,
 				[jobId]
@@ -168,7 +147,6 @@ async function handle(job) {
 		return;
 	}
 
-	// 3. process output
 	const output = last.output || {};
 	const executionTimeMs = Number(last.executionTime || 0);
 	const rowRes = await pool.query('SELECT gpu_class FROM jobs WHERE id=$1', [jobId]);
@@ -178,18 +156,21 @@ async function handle(job) {
 	const client = await pool.connect();
 	try {
 		await client.query('BEGIN');
-		const outputFiles = Array.isArray(output.output_files) ? output.output_files : [];
-		for (const f of outputFiles) {
-			if (!f.filename || !f.content_b64) continue;
-			await uploadOutput(client, jobId, userId, f);
+
+		// New transport: handler PUT files directly to S3; we just register them.
+		const fileMetas = Array.isArray(output.files) ? output.files : [];
+		for (const f of fileMetas) {
+			if (typeof f.slot !== 'number' || !f.filename) continue;
+			const virtualPath = `/u/${userId}/jobs/${jobId}/output/${f.filename}`;
+			const s3Key = slotKey(userId, jobId, f.slot);
+			await registerFile(client, userId, virtualPath, s3Key, Number(f.size || 0), f.mime);
 		}
-		if (output.log) {
-			await uploadOutput(client, jobId, userId, {
-				filename: 'log',
-				content_b64: Buffer.from(output.log).toString('base64'),
-				mime: 'text/plain'
-			});
+		if (output.log_uploaded) {
+			const virtualPath = `/u/${userId}/jobs/${jobId}/log`;
+			const s3Key = logKey(userId, jobId);
+			await registerFile(client, userId, virtualPath, s3Key, 0, 'text/plain');
 		}
+
 		await debit(client, userId, cost, jobId, `${tool} · ${(executionTimeMs / 1000).toFixed(1)}s on ${gpu}`);
 		await client.query(
 			`UPDATE jobs SET status='completed', actual_cost_cents=$2, execution_time_ms=$3,
@@ -197,7 +178,7 @@ async function handle(job) {
 			[jobId, cost, executionTimeMs, `/u/${userId}/jobs/${jobId}/output/`]
 		);
 		await client.query('COMMIT');
-		console.log(`[worker] ${jobId} → completed, billed ${cost}¢`);
+		console.log(`[worker] ${jobId} → completed, billed ${cost}¢, ${fileMetas.length} outputs`);
 	} catch (e) {
 		await client.query('ROLLBACK');
 		await pool.query(
@@ -210,29 +191,21 @@ async function handle(job) {
 	}
 }
 
-// ---------- main ----------
 async function main() {
-	const boss = new PgBoss({ connectionString: DB, schema: 'pgboss', retryLimit: 0 });
+	const boss = new PgBoss({ connectionString: DB, schema: 'pgboss' });
 	await boss.start();
 	console.log('[worker] subscribed to docking-jobs');
 
 	await boss.work('docking-jobs', { teamSize: 4, teamConcurrency: 2 }, async (job) => {
-		try {
-			await handle(job);
-		} catch (e) {
-			console.error('[worker] job error', e);
-			throw e;
-		}
+		try { await handle(job); }
+		catch (e) { console.error('[worker] job error', e); throw e; }
 	});
 
 	process.on('SIGTERM', async () => {
-		console.log('[worker] SIGTERM, stopping...');
+		console.log('[worker] SIGTERM');
 		await boss.stop();
 		process.exit(0);
 	});
 }
 
-main().catch((e) => {
-	console.error('[worker] fatal:', e);
-	process.exit(1);
-});
+main().catch((e) => { console.error('[worker] fatal:', e); process.exit(1); });

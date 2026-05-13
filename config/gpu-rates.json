@@ -1,0 +1,10 @@
+{
+	"_comment": "RunPod Flex per-second rates in cents. See docs/PRICING.md.",
+	"_updated": "2026-05-12",
+	"rtx4090": { "vram_gb": 24, "cents_per_sec": 0.031 },
+	"l40s": { "vram_gb": 48, "cents_per_sec": 0.053 },
+	"a100": { "vram_gb": 80, "cents_per_sec": 0.076 },
+	"h100": { "vram_gb": 80, "cents_per_sec": 0.116 },
+	"h200": { "vram_gb": 141, "cents_per_sec": 0.155 },
+	"b200": { "vram_gb": 180, "cents_per_sec": 0.24 }
+}

@@ -22,7 +22,7 @@ module.exports = {
 		},
 		{
 			name: 'dockvision-worker',
-			script: 'build/workers/job-worker.js',
+			script: 'scripts/job-worker.mjs',
 			cwd: '/srv/dockvision',
 			instances: 1,
 			exec_mode: 'fork',

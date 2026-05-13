@@ -28,8 +28,10 @@
     "@sveltejs/adapter-node": "^5.2.9",
     "@sveltejs/kit": "^2.8.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@types/minimist": "^1.2.5",
     "@types/nodemailer": "^7.0.2",
     "@types/pg": "^8.11.10",
+    "@types/shell-quote": "^1.7.5",
     "eslint": "^9.13.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.46.0",
@@ -46,8 +48,17 @@
   "dependencies": {
     "@auth/pg-adapter": "^1.7.4",
     "@auth/sveltekit": "^1.7.4",
+    "@aws-sdk/client-s3": "^3.1045.0",
+    "@aws-sdk/s3-request-presigner": "^3.1045.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "minimist": "^1.2.8",
+    "nanoid": "^5.1.11",
     "nodemailer": "^7.0.7",
     "pg": "^8.13.1",
+    "pg-boss": "^12.18.2",
+    "shell-quote": "^1.8.3",
+    "stripe": "^22.1.1",
     "zod": "^3.23.8"
   },
   "engines": {

@@ -35,7 +35,7 @@ module.exports = {
 		},
 		{
 			name: 'dockvision-recon',
-			script: 'build/workers/recon.js',
+			script: 'scripts/recon.mjs',
 			cwd: '/srv/dockvision',
 			cron_restart: '*/15 * * * *',
 			autorestart: false,

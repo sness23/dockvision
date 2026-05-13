@@ -15,6 +15,7 @@ export type CmdResponse =
 	| { type: 'cd'; newCwd: string }
 	| { type: 'upload'; targetPath: string; uploadUrl: string }
 	| { type: 'redirect'; url: string }
+	| { type: 'mol-view'; file: string; format: string; name: string }
 	| { type: 'confirm'; prompt: string; commitToken: string }
 	| { type: 'error'; message: string };
 

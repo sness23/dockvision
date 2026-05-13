@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import '@xterm/xterm/css/xterm.css';
+	import MolView from '$lib/components/MolView.svelte';
 
 	const { data } = $props();
 	const userId = $derived(
@@ -22,6 +23,7 @@
 	let history: string[] = [];
 	let historyIdx = -1;
 	let pendingUpload: { target: string } | null = null;
+	let molView = $state<{ file: string; format: string; name: string } | null>(null);
 
 	const C = {
 		reset: '\x1b[0m',
@@ -95,6 +97,13 @@
 		} else if (res.type === 'redirect') {
 			window.open(res.url as string, '_blank');
 			writeLine(t, `${C.dim}→ opened ${C.reset}`);
+		} else if (res.type === 'mol-view') {
+			molView = {
+				file: res.file as string,
+				format: res.format as string,
+				name: res.name as string
+			};
+			writeLine(t, `${C.dim}→ opened viewer (esc to close)${C.reset}`);
 		} else if (res.type === 'upload') {
 			// handled in upload flow
 		}
@@ -279,6 +288,15 @@
 		if (f) onFilePicked(f);
 	}}
 />
+
+{#if molView}
+	<MolView
+		fileUrl={molView.file}
+		format={molView.format}
+		name={molView.name}
+		onClose={() => (molView = null)}
+	/>
+{/if}
 
 <style>
 	.topbar {

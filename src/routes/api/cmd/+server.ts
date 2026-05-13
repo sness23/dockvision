@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { z } from 'zod';
 import { dispatch } from '$lib/cli';
+import { verifyBearer } from '$lib/server/api-keys';
 import type { RequestHandler } from './$types';
 
 const Body = z.object({
@@ -9,22 +10,35 @@ const Body = z.object({
 });
 
 export const POST: RequestHandler = async (event) => {
-	const session = await event.locals.auth?.();
-	const user = session?.user;
-	if (!user?.email) throw error(401, 'not signed in');
+	// 1) Bearer API key (CLI shim) — preferred when present.
+	const bearer = await verifyBearer(event.request.headers.get('authorization'));
+
+	// 2) Browser session.
+	const session = bearer ? null : await event.locals.auth?.();
+	const sessionUser = session?.user;
+
+	const userId = bearer
+		? bearer.userId
+		: Number((sessionUser as { id?: string | number } | undefined)?.id);
+	const userEmail = bearer ? bearer.email : sessionUser?.email;
+
+	if (!userId || !userEmail) throw error(401, 'not authenticated');
 
 	const parsed = Body.safeParse(await event.request.json().catch(() => ({})));
 	if (!parsed.success) throw error(400, parsed.error.message);
 
-	// Auth.js gives us email; the user's int id is in our users table.
-	// session.user.id is also populated by the pg adapter.
-	const userId = Number((user as { id?: string | number }).id);
-	if (!userId) throw error(401, 'user id missing from session');
+	// Normalize cwd: '/' or anything outside /u/<userId> becomes the user's root.
+	// CLI shim callers don't know their userId on the first hit, so '/' is the wire default.
+	const userRoot = `/u/${userId}`;
+	const cwd =
+		parsed.data.cwd && parsed.data.cwd.startsWith(userRoot)
+			? parsed.data.cwd
+			: userRoot;
 
 	const res = await dispatch(parsed.data.line, {
 		userId,
-		userEmail: user.email,
-		cwd: parsed.data.cwd,
+		userEmail,
+		cwd,
 		origin: event.url.origin
 	});
 	return json(res);

@@ -1,0 +1,24 @@
+{
+	"name": "@dockvision/cli",
+	"version": "0.1.0",
+	"private": false,
+	"license": "AGPL-3.0-or-later",
+	"description": "Command-line client for dockvision.doi.bio",
+	"homepage": "https://dockvision.doi.bio",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/sness23/dockvision.git",
+		"directory": "cli"
+	},
+	"type": "module",
+	"bin": {
+		"dvk": "./bin/dvk.mjs"
+	},
+	"files": [
+		"bin/",
+		"README.md"
+	],
+	"engines": {
+		"node": ">=18"
+	}
+}

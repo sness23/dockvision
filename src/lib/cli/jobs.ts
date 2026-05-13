@@ -5,7 +5,7 @@ import { resolveUserPath, s3KeyFor } from '../fs/resolve';
 import { presignedGet } from '../server/s3';
 import { assertCanAfford } from '../server/balance';
 import { estimateCents, formatCents } from '../server/pricing';
-import { getTool, endpointIdFor } from '../server/tools';
+import { getTool, endpointIdFor, calibratedTypicalSec } from '../server/tools';
 import { getBoss, JOB_QUEUE, type JobPayload } from '../server/queue';
 import { cancel as runpodCancel } from '../server/runpod';
 import { text, err, type CmdContext, type CmdResponse, type TextLine } from './types';
@@ -74,7 +74,8 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 		validated[name] = virtualPath;
 	}
 
-	const estimate = estimateCents(tool.typicalRuntimeSec, tool.gpu);
+	const typicalSec = await calibratedTypicalSec(tool);
+	const estimate = estimateCents(typicalSec, tool.gpu);
 
 	try {
 		await assertCanAfford(ctx.userId, estimate);
@@ -135,7 +136,7 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 	const lines: TextLine[] = [
 		{ s: `submitted job ${jobId}`, t: 'ok' },
 		{ s: `tool:      ${tool.displayName} (${tool.name}) on ${tool.gpu}`, t: 'dim' },
-		{ s: `estimate:  ${formatCents(estimate)}  (${tool.typicalRuntimeSec}s typical × markup)`, t: 'dim' },
+		{ s: `estimate:  ${formatCents(estimate)}  (${typicalSec}s typical × markup)`, t: 'dim' },
 		{ s: '' },
 		{ s: `run 'status ${jobId}' or 'jobs --running' to track.` }
 	];

@@ -103,6 +103,36 @@ export async function rm(argv: string[], ctx: CmdContext): Promise<CmdResponse> 
 	}
 }
 
+export async function view(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
+	if (!argv[0]) return err('usage: view <file>');
+	try {
+		const { url, row } = await files.presignDownload(ctx.userId, ctx.cwd, argv[0]);
+		const ext = row.path.split('.').pop()?.toLowerCase() ?? '';
+		let format: string;
+		switch (ext) {
+			case 'cif':
+			case 'mmcif':
+				format = 'mmcif';
+				break;
+			case 'pdb':
+				format = 'pdb';
+				break;
+			case 'sdf':
+				format = 'sdf';
+				break;
+			case 'mol':
+				format = 'mol';
+				break;
+			default:
+				return err(`unsupported viewer format: .${ext} (use cif/pdb/sdf/mol)`);
+		}
+		const name = row.path.split('/').pop() ?? row.path;
+		return { type: 'mol-view', file: url, format, name };
+	} catch (e) {
+		return err((e as Error).message);
+	}
+}
+
 export async function download(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
 	if (!argv[0]) return err('usage: download <file>');
 	try {

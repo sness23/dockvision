@@ -4,6 +4,7 @@ import * as account from './account';
 import * as fs from './fs';
 import * as toolsCmd from './tools-cmd';
 import * as jobs from './jobs';
+import * as keysCmd from './keys';
 
 type Handler = (argv: string[], ctx: CmdContext) => Promise<CmdResponse>;
 
@@ -31,7 +32,11 @@ const COMMANDS: Record<string, { run: Handler; help: string }> = {
 	jobs: { run: jobs.list, help: 'list your jobs' },
 	status: { run: jobs.status, help: 'show job status' },
 	cancel: { run: jobs.cancel, help: 'cancel a running job' },
-	log: { run: jobs.log, help: 'show job log' }
+	log: { run: jobs.log, help: 'show job log' },
+	// account / api keys
+	keys: { run: keysCmd.keys, help: 'manage API keys (list/create/revoke)' },
+	// viewer
+	view: { run: fs.view, help: 'open a structure file in Mol* viewer' }
 };
 
 export async function dispatch(line: string, ctx: CmdContext): Promise<CmdResponse> {

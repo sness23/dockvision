@@ -1,0 +1,33 @@
+# /etc/nginx/sites-available/dockvision.doi.bio
+# After editing: ln -s ../sites-available/dockvision.doi.bio /etc/nginx/sites-enabled/
+# Then: certbot --nginx -d dockvision.doi.bio
+
+server {
+	server_name dockvision.doi.bio;
+	listen 80;
+
+	# certbot --nginx will inject the SSL block here
+
+	client_max_body_size 200M;   # generous for input uploads; presigned PUT goes direct to S3
+
+	location / {
+		proxy_pass http://127.0.0.1:3000;
+		proxy_http_version 1.1;
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection "upgrade";
+
+		# generous for long-polling job status / streaming logs
+		proxy_read_timeout 300s;
+		proxy_send_timeout 300s;
+	}
+
+	# Stripe webhook endpoint — Stripe needs raw body, SvelteKit handles it.
+	# Mentioned here as a reminder; no special config needed.
+
+	access_log /var/log/nginx/dockvision-access.log;
+	error_log  /var/log/nginx/dockvision-error.log;
+}

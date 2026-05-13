@@ -1,0 +1,22 @@
+node_modules/
+.svelte-kit/
+build/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+coverage/
+.vscode/
+.idea/
+
+# local secrets / runtime
+/secrets/
+/var/
+
+# pm2
+.pm2/
+
+# editor swap files
+*.swp
+*.swo

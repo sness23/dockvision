@@ -1,7 +1,18 @@
 import minimist from 'minimist';
 import * as files from '../server/files';
+import { query } from '../server/db';
+import { presignedGet } from '../server/s3';
 import { resolveUserPath, PathError } from '../fs/resolve';
 import { text, err, type CmdContext, type CmdResponse, type TextLine } from './types';
+
+function molFormat(p: string): string | null {
+	const ext = p.split('.').pop()?.toLowerCase() ?? '';
+	if (ext === 'cif' || ext === 'mmcif') return 'mmcif';
+	if (ext === 'pdb') return 'pdb';
+	if (ext === 'sdf') return 'sdf';
+	if (ext === 'mol') return 'mol';
+	return null;
+}
 
 function fmtSize(bytes: number): string {
 	if (bytes < 1024) return `${bytes}B`;
@@ -104,33 +115,82 @@ export async function rm(argv: string[], ctx: CmdContext): Promise<CmdResponse> 
 }
 
 export async function view(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
-	if (!argv[0]) return err('usage: view <file>');
+	if (!argv[0]) return err('usage: view <file-or-job-dir>');
+
+	let resolved: string;
+	try {
+		resolved = resolveUserPath(String(ctx.userId), ctx.cwd, argv[0]);
+	} catch (e) {
+		if (e instanceof PathError) return err(e.message);
+		throw e;
+	}
+
+	// Job directory — /u/<n>/jobs/<uuid>[/output][/] — load receptor + all poses.
+	const jobMatch = resolved.match(/^\/u\/\d+\/jobs\/([0-9a-fA-F-]{36})(?:\/output)?\/?$/);
+	if (jobMatch) return viewJob(ctx, jobMatch[1]);
+
+	// Single structure file.
 	try {
 		const { url, row } = await files.presignDownload(ctx.userId, ctx.cwd, argv[0]);
-		const ext = row.path.split('.').pop()?.toLowerCase() ?? '';
-		let format: string;
-		switch (ext) {
-			case 'cif':
-			case 'mmcif':
-				format = 'mmcif';
-				break;
-			case 'pdb':
-				format = 'pdb';
-				break;
-			case 'sdf':
-				format = 'sdf';
-				break;
-			case 'mol':
-				format = 'mol';
-				break;
-			default:
-				return err(`unsupported viewer format: .${ext} (use cif/pdb/sdf/mol)`);
+		const fmt = molFormat(row.path);
+		if (!fmt) {
+			const ext = row.path.split('.').pop() ?? '?';
+			return err(`unsupported viewer format: .${ext} (use cif/pdb/sdf/mol)`);
 		}
 		const name = row.path.split('/').pop() ?? row.path;
-		return { type: 'mol-view', file: url, format, name };
+		return { type: 'mol-view', structures: [{ url, format: fmt, label: name }], title: name };
 	} catch (e) {
 		return err((e as Error).message);
 	}
+}
+
+async function viewJob(ctx: CmdContext, jobId: string): Promise<CmdResponse> {
+	const jobs = await query<{ args: Record<string, unknown>; tool: string; status: string }>(
+		'SELECT args, tool, status FROM jobs WHERE id = $1 AND user_id = $2',
+		[jobId, ctx.userId]
+	);
+	if (!jobs.length) return err('no such job');
+	const job = jobs[0];
+
+	const structures: { url: string; format: string; label: string }[] = [];
+
+	// Input receptor, if it is itself a structure file (the GNINA case — Mol*
+	// overlays the docked poses on it; co-folder outputs already include it).
+	const receptor = job.args?.receptor;
+	if (typeof receptor === 'string') {
+		const fmt = molFormat(receptor);
+		if (fmt) {
+			const row = await files.stat(ctx.userId, `/u/${ctx.userId}`, receptor);
+			if (row) {
+				structures.push({ url: await presignedGet(row.s3_key), format: fmt, label: 'receptor' });
+			}
+		}
+	}
+
+	// Output structures.
+	const outRows = await query<{ path: string; s3_key: string }>(
+		`SELECT path, s3_key FROM files
+		 WHERE user_id = $1 AND path LIKE $2 ORDER BY path`,
+		[ctx.userId, `/u/${ctx.userId}/jobs/${jobId}/output/%`]
+	);
+	for (const r of outRows) {
+		const fmt = molFormat(r.path);
+		if (!fmt) continue;
+		structures.push({
+			url: await presignedGet(r.s3_key),
+			format: fmt,
+			label: r.path.split('/').pop() ?? r.path
+		});
+	}
+
+	if (!structures.length) {
+		return err(
+			job.status === 'completed'
+				? 'no viewable structures in this job'
+				: `job is ${job.status} — nothing to view yet`
+		);
+	}
+	return { type: 'mol-view', structures, title: `job ${jobId.slice(0, 8)} · ${job.tool}` };
 }
 
 export async function download(argv: string[], ctx: CmdContext): Promise<CmdResponse> {

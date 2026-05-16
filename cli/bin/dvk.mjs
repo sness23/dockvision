@@ -12,6 +12,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import http from 'node:http';
+import { spawn } from 'node:child_process';
 
 const API_URL = process.env.DOCKVISION_URL || 'https://dockvision.doi.bio';
 const KEY_FILE = path.join(os.homedir(), '.dockvision', 'api-key');
@@ -42,20 +44,23 @@ function usage() {
   dvk <command> [args...]
 
 setup:
-  export DOCKVISION_API_KEY=dvk_xxx_yyyy
-  (or echo your key into ~/.dockvision/api-key)
+  dvk login                          # browser-based — mints + saves a key
+  (or manually: export DOCKVISION_API_KEY=dvk_xxx_yyyy)
   export DOCKVISION_URL=${API_URL}   # default
 
 examples:
+  dvk login
   dvk whoami
   dvk cost
   dvk tools
   dvk ls
   dvk upload ./protein.pdb /inputs/protein.pdb
-  dvk run gnina --receptor /inputs/protein.pdb --ligand /inputs/ligand.sdf
+  dvk upload-dir ./T1146 /casp/T1146
+  dvk run gnina --receptor /casp/T1146/receptor.pdb --ligand /casp/T1146/ligand.sdf
   dvk jobs --running
   dvk status <job-id>
   dvk download /u/<uid>/jobs/<jid>/output/poses.sdf > poses.sdf
+  dvk download-dir /jobs/<jid>/output ./out
 
 create an API key from the web shell at /app:  keys create laptop`);
 }
@@ -63,6 +68,66 @@ create an API key from the web shell at /app:  keys create laptop`);
 function quote(s) {
 	if (/^[a-zA-Z0-9_.\-\/=:@]+$/.test(s)) return s;
 	return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+}
+
+function openBrowser(url) {
+	const cmd =
+		process.platform === 'darwin'
+			? 'open'
+			: process.platform === 'win32'
+				? 'cmd'
+				: 'xdg-open';
+	const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
+	try {
+		spawn(cmd, args, { stdio: 'ignore', detached: true }).unref();
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function handleLogin() {
+	const server = http.createServer((req, res) => {
+		const u = new URL(req.url, 'http://127.0.0.1');
+		if (u.pathname !== '/cb') {
+			res.writeHead(404);
+			res.end();
+			return;
+		}
+		const key = u.searchParams.get('key');
+		if (!key) {
+			res.writeHead(400, { 'Content-Type': 'text/plain' });
+			res.end('no key in callback');
+			return;
+		}
+		fs.mkdirSync(path.dirname(KEY_FILE), { recursive: true });
+		fs.writeFileSync(KEY_FILE, key.trim() + '\n', { mode: 0o600 });
+		res.writeHead(200, { 'Content-Type': 'text/html' });
+		res.end(
+			'<!doctype html><body style="font-family:system-ui;background:#0d1117;color:#c9d1d9;padding:3em">' +
+				'<h2>DockVision CLI authorized</h2><p>Key saved. You can close this tab.</p></body>'
+		);
+		console.log(paint(`logged in — key saved to ${KEY_FILE}`, 'ok'));
+		setTimeout(() => {
+			server.close();
+			process.exit(0);
+		}, 200);
+	});
+
+	server.listen(0, '127.0.0.1', () => {
+		const { port } = server.address();
+		const authUrl = `${API_URL}/cli/auth?port=${port}`;
+		console.log('authorize DockVision CLI in your browser:');
+		console.log('  ' + paint(authUrl, 'cyan'));
+		if (!openBrowser(authUrl)) {
+			console.log(paint('(could not auto-open a browser — paste the URL above)', 'dim'));
+		}
+	});
+
+	setTimeout(() => {
+		console.error(paint('login timed out after 3 minutes', 'err'));
+		process.exit(1);
+	}, 180_000);
 }
 
 async function callCmd(line, apiKey) {
@@ -128,6 +193,102 @@ async function handleUpload(args, apiKey) {
 	console.log(paint(`uploaded ${stat.size}B → ${res.targetPath}`, 'ok'));
 }
 
+async function walkLocalDir(root) {
+	const out = [];
+	async function rec(dir, rel) {
+		for (const ent of await fs.promises.readdir(dir, { withFileTypes: true })) {
+			const abs = path.join(dir, ent.name);
+			const r = rel ? path.posix.join(rel, ent.name) : ent.name;
+			if (ent.isDirectory()) await rec(abs, r);
+			else if (ent.isFile()) out.push({ abs, rel: r });
+		}
+	}
+	await rec(root, '');
+	return out;
+}
+
+async function handleUploadDir(args, apiKey) {
+	const [localDir, target] = args;
+	if (!localDir || !target) {
+		console.error('usage: dvk upload-dir <local-dir> <target-virtual-path>');
+		process.exit(1);
+	}
+	if (!fs.existsSync(localDir) || !fs.statSync(localDir).isDirectory()) {
+		console.error(`not a directory: ${localDir}`);
+		process.exit(1);
+	}
+	const files = await walkLocalDir(localDir);
+	if (files.length === 0) {
+		console.error('(empty)');
+		return;
+	}
+	const targetClean = target.replace(/\/+$/, '');
+	console.log(paint(`uploading ${files.length} files to ${targetClean}/`, 'dim'));
+	let ok = 0;
+	for (const f of files) {
+		const targetPath = `${targetClean}/${f.rel}`;
+		try {
+			await handleUpload([f.abs, targetPath], apiKey);
+			ok++;
+		} catch (e) {
+			console.error(paint(`failed: ${f.rel} — ${e.message}`, 'err'));
+		}
+	}
+	console.log(paint(`uploaded ${ok}/${files.length}`, ok === files.length ? 'ok' : 'warn'));
+}
+
+async function handleDownloadDir(args, apiKey) {
+	const [virtualDir, localDir] = args;
+	if (!virtualDir || !localDir) {
+		console.error('usage: dvk download-dir <virtual-dir> <local-dir>');
+		process.exit(1);
+	}
+	// `ls <virtualDir>` recursively. We do this by calling ls server-side and
+	// recursing into entries that end with '/'.
+	fs.mkdirSync(localDir, { recursive: true });
+
+	async function rec(virt, local) {
+		const res = await callCmd(`ls ${quote(virt)}`, apiKey);
+		if (res.type !== 'text') {
+			console.error(paint(`ls failed for ${virt}`, 'err'));
+			return;
+		}
+		const names = res.lines
+			.map((l) => l.s.trim())
+			.filter((s) => s && !s.startsWith('(') && s !== '');
+		for (const line of names) {
+			// ls line shape: "  12.3K    name" (file) or "name/" (dir).
+			const parts = line.split(/\s+/);
+			const last = parts[parts.length - 1];
+			if (!last) continue;
+			if (last.endsWith('/')) {
+				const subVirt = `${virt.replace(/\/+$/, '')}/${last.slice(0, -1)}`;
+				const subLocal = path.join(local, last.slice(0, -1));
+				fs.mkdirSync(subLocal, { recursive: true });
+				await rec(subVirt, subLocal);
+			} else {
+				const subVirt = `${virt.replace(/\/+$/, '')}/${last}`;
+				const localFile = path.join(local, last);
+				const dl = await callCmd(`download ${quote(subVirt)}`, apiKey);
+				if (dl.type !== 'redirect') {
+					console.error(paint(`  ${last}: ${dl.message || 'no url'}`, 'err'));
+					continue;
+				}
+				const get = await fetch(dl.url);
+				if (!get.ok) {
+					console.error(paint(`  ${last}: HTTP ${get.status}`, 'err'));
+					continue;
+				}
+				const buf = Buffer.from(await get.arrayBuffer());
+				fs.writeFileSync(localFile, buf);
+				console.log(paint(`  ${subVirt} → ${localFile}  (${buf.length}B)`, 'dim'));
+			}
+		}
+	}
+	await rec(virtualDir, localDir);
+	console.log(paint(`done → ${localDir}`, 'ok'));
+}
+
 async function handleDownload(args, apiKey) {
 	const [virtualPath] = args;
 	if (!virtualPath) {
@@ -186,21 +347,33 @@ async function main() {
 		usage();
 		return;
 	}
-	const apiKey = readKey();
-	if (!apiKey) {
-		console.error('No API key. Set DOCKVISION_API_KEY or put it in ~/.dockvision/api-key.');
-		console.error("Generate one with 'keys create <name>' in the web shell.");
-		process.exit(1);
+	const [cmd, ...args] = argv;
+
+	if (cmd === 'login') {
+		await handleLogin();
+		return;
 	}
 
-	const [cmd, ...args] = argv;
+	const apiKey = readKey();
+	if (!apiKey) {
+		console.error('No API key. Run `dvk login`, or set DOCKVISION_API_KEY.');
+		process.exit(1);
+	}
 
 	if (cmd === 'upload') {
 		await handleUpload(args, apiKey);
 		return;
 	}
+	if (cmd === 'upload-dir') {
+		await handleUploadDir(args, apiKey);
+		return;
+	}
 	if (cmd === 'download') {
 		await handleDownload(args, apiKey);
+		return;
+	}
+	if (cmd === 'download-dir') {
+		await handleDownloadDir(args, apiKey);
 		return;
 	}
 

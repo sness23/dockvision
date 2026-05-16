@@ -2,11 +2,14 @@
 	import { onMount, onDestroy } from 'svelte';
 
 	let {
-		fileUrl,
-		format,
-		name,
+		structures,
+		title,
 		onClose
-	}: { fileUrl: string; format: string; name: string; onClose: () => void } = $props();
+	}: {
+		structures: { url: string; format: string; label: string }[];
+		title: string;
+		onClose: () => void;
+	} = $props();
 
 	let host: HTMLDivElement;
 	let viewer: { dispose?: () => void } | null = null;
@@ -68,7 +71,11 @@
 			});
 			viewer = v;
 			if (v.loadStructureFromUrl) {
-				await v.loadStructureFromUrl(fileUrl, format);
+				// Load each structure into the same scene — receptor + docked poses
+				// share a coordinate frame, so they overlay correctly.
+				for (const s of structures) {
+					await v.loadStructureFromUrl(s.url, s.format);
+				}
 			}
 		} catch (e) {
 			console.error('mol-view load failed', e);
@@ -100,8 +107,12 @@
 >
 	<div class="frame">
 		<div class="title">
-			<span class="mono">{name}</span>
-			<span class="dim mono">({format})</span>
+			<span class="mono">{title}</span>
+			<span class="dim mono">
+				{structures.length} structure{structures.length === 1 ? '' : 's'}: {structures
+					.map((s) => s.label)
+					.join(', ')}
+			</span>
 			<span class="grow"></span>
 			<button class="x" onclick={onClose} aria-label="Close">×</button>
 		</div>

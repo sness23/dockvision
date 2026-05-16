@@ -13,6 +13,7 @@ export interface FileRow {
 	pinned: boolean;
 	created_at: Date;
 	expires_at: Date | null;
+	links_to: string | null;
 }
 
 const RETENTION_DAYS = 180;
@@ -143,7 +144,11 @@ export async function setPinned(
 export async function remove(userId: number, cwd: string, input: string): Promise<FileRow> {
 	const row = await stat(userId, cwd, input);
 	if (!row) throw new Error(`no such file: ${input}`);
-	await deleteObject(row.s3_key);
+	// A link row only aliases bytes — never delete the underlying S3 object,
+	// just drop the alias. Real files delete their object.
+	if (!row.links_to) {
+		await deleteObject(row.s3_key);
+	}
 	await query('DELETE FROM files WHERE id = $1', [row.id]);
 	return row;
 }

@@ -70,16 +70,40 @@ function expiresAt() {
 }
 
 async function registerFile(client, userId, virtualPath, s3Key, sizeBytes, mime) {
-	await client.query(
+	const res = await client.query(
 		`INSERT INTO files (user_id, path, s3_key, size_bytes, mime, expires_at)
 		 VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (user_id, path) DO UPDATE
 		   SET s3_key = EXCLUDED.s3_key,
 		       size_bytes = EXCLUDED.size_bytes,
 		       mime = EXCLUDED.mime,
-		       expires_at = EXCLUDED.expires_at`,
+		       expires_at = EXCLUDED.expires_at
+		 RETURNING id`,
 		[userId, virtualPath, s3Key, sizeBytes, mime || 'application/octet-stream', expiresAt()]
 	);
+	return res.rows[0].id;
+}
+
+// Register /results/<tag>/<tool>/ link rows aliasing a job's outputs.
+// Links share the target's s3_key and don't count toward storage.
+async function registerResultLinks(client, userId, tag, tool, jobId, outputs) {
+	if (!tag) return;
+	const base = `/u/${userId}/results/${tag}/${tool}`;
+	// Clear stale links from a previous run of this tag+tool.
+	await client.query(
+		`DELETE FROM files WHERE user_id = $1 AND links_to IS NOT NULL AND path LIKE $2`,
+		[userId, base + '/%']
+	);
+	for (const o of outputs) {
+		await client.query(
+			`INSERT INTO files (user_id, path, s3_key, size_bytes, mime, links_to, expires_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7)
+			 ON CONFLICT (user_id, path) DO UPDATE
+			   SET s3_key = EXCLUDED.s3_key, size_bytes = EXCLUDED.size_bytes,
+			       mime = EXCLUDED.mime, links_to = EXCLUDED.links_to`,
+			[userId, `${base}/${o.filename}`, o.s3Key, o.size, o.mime, o.fileId, expiresAt()]
+		);
+	}
 }
 
 async function debit(client, userId, amountCents, jobId, description) {
@@ -149,8 +173,9 @@ async function handle(job) {
 
 	const output = last.output || {};
 	const executionTimeMs = Number(last.executionTime || 0);
-	const rowRes = await pool.query('SELECT gpu_class FROM jobs WHERE id=$1', [jobId]);
+	const rowRes = await pool.query('SELECT gpu_class, tag FROM jobs WHERE id=$1', [jobId]);
 	const gpu = rowRes.rows[0]?.gpu_class;
+	const tag = rowRes.rows[0]?.tag;
 	const cost = billCents(executionTimeMs, gpu);
 
 	const client = await pool.connect();
@@ -159,17 +184,24 @@ async function handle(job) {
 
 		// New transport: handler PUT files directly to S3; we just register them.
 		const fileMetas = Array.isArray(output.files) ? output.files : [];
+		const registered = [];
 		for (const f of fileMetas) {
 			if (typeof f.slot !== 'number' || !f.filename) continue;
 			const virtualPath = `/u/${userId}/jobs/${jobId}/output/${f.filename}`;
 			const s3Key = slotKey(userId, jobId, f.slot);
-			await registerFile(client, userId, virtualPath, s3Key, Number(f.size || 0), f.mime);
+			const size = Number(f.size || 0);
+			const mime = f.mime || 'application/octet-stream';
+			const fileId = await registerFile(client, userId, virtualPath, s3Key, size, mime);
+			registered.push({ filename: f.filename, s3Key, size, mime, fileId });
 		}
 		if (output.log_uploaded) {
 			const virtualPath = `/u/${userId}/jobs/${jobId}/log`;
 			const s3Key = logKey(userId, jobId);
 			await registerFile(client, userId, virtualPath, s3Key, 0, 'text/plain');
 		}
+
+		// Aggregate the latest outputs per target under /results/<tag>/<tool>/.
+		await registerResultLinks(client, userId, tag, tool, jobId, registered);
 
 		await debit(client, userId, cost, jobId, `${tool} · ${(executionTimeMs / 1000).toFixed(1)}s on ${gpu}`);
 		await client.query(

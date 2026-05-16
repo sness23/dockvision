@@ -5,6 +5,7 @@ import * as fs from './fs';
 import * as toolsCmd from './tools-cmd';
 import * as jobs from './jobs';
 import * as keysCmd from './keys';
+import { seed } from './seed';
 
 type Handler = (argv: string[], ctx: CmdContext) => Promise<CmdResponse>;
 
@@ -36,7 +37,9 @@ const COMMANDS: Record<string, { run: Handler; help: string }> = {
 	// account / api keys
 	keys: { run: keysCmd.keys, help: 'manage API keys (list/create/revoke)' },
 	// viewer
-	view: { run: fs.view, help: 'open a structure file in Mol* viewer' }
+	view: { run: fs.view, help: 'open a structure file or job result in Mol* viewer' },
+	// seeding (dev / vault-equipped instances only)
+	seed: { run: seed, help: 'seed a CASP target into /casp/ (seed casp <target>)' }
 };
 
 export async function dispatch(line: string, ctx: CmdContext): Promise<CmdResponse> {

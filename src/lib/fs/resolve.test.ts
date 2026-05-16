@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveUserPath, s3KeyFor, PathError } from './resolve';
+import { resolveUserPath, s3KeyFor, displayPath, PathError } from './resolve';
 
 describe('resolveUserPath', () => {
 	const user = '42';
@@ -27,6 +27,30 @@ describe('resolveUserPath', () => {
 
 	it('rejects null bytes', () => {
 		expect(() => resolveUserPath(user, cwd, 'foo\0bar')).toThrow(PathError);
+	});
+
+	it('treats /-prefixed paths as user-root-relative', () => {
+		expect(resolveUserPath(user, cwd, '/casp/T1146')).toBe('/u/42/casp/T1146');
+		expect(resolveUserPath(user, cwd, '/')).toBe('/u/42');
+	});
+
+	it('accepts full /u/<id> paths verbatim', () => {
+		expect(resolveUserPath(user, cwd, '/u/42/inputs/x')).toBe('/u/42/inputs/x');
+	});
+
+	it('still rejects cross-user explicit paths', () => {
+		expect(() => resolveUserPath(user, cwd, '/u/99/x')).toThrow(PathError);
+	});
+});
+
+describe('displayPath', () => {
+	it('strips the user root', () => {
+		expect(displayPath('42', '/u/42/casp/T1146')).toBe('/casp/T1146');
+		expect(displayPath('42', '/u/42')).toBe('/');
+	});
+
+	it('passes through paths outside the root', () => {
+		expect(displayPath('42', '/elsewhere')).toBe('/elsewhere');
 	});
 });
 

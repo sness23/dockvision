@@ -23,7 +23,10 @@
 	let history: string[] = [];
 	let historyIdx = -1;
 	let pendingUpload: { target: string } | null = null;
-	let molView = $state<{ file: string; format: string; name: string } | null>(null);
+	let molView = $state<{
+		structures: { url: string; format: string; label: string }[];
+		title: string;
+	} | null>(null);
 	let eventSource: EventSource | null = null;
 	let pollFallback: ReturnType<typeof setInterval> | null = null;
 
@@ -38,7 +41,11 @@
 	};
 
 	function prompt(): string {
-		return `${C.cyan}${cwd}${C.reset} ${C.bold}$${C.reset} `;
+		const root = userId ? `/u/${userId}` : '';
+		let display = cwd;
+		if (root && cwd === root) display = '/';
+		else if (root && cwd.startsWith(root + '/')) display = cwd.slice(root.length);
+		return `${C.cyan}${display}${C.reset} ${C.bold}$${C.reset} `;
 	}
 
 	function writeLine(t: Term, s = '') {
@@ -101,9 +108,8 @@
 			writeLine(t, `${C.dim}→ opened ${C.reset}`);
 		} else if (res.type === 'mol-view') {
 			molView = {
-				file: res.file as string,
-				format: res.format as string,
-				name: res.name as string
+				structures: res.structures as { url: string; format: string; label: string }[],
+				title: res.title as string
 			};
 			writeLine(t, `${C.dim}→ opened viewer (esc to close)${C.reset}`);
 		} else if (res.type === 'upload') {
@@ -203,8 +209,50 @@
 		fit.fit();
 
 		const t = term;
+
+		// Shift+Ctrl+C → copy selection. Shift+Ctrl+V → paste from clipboard.
+		// Pure Ctrl+C still sends ^C (interrupts the current input line).
+		t.attachCustomKeyEventHandler((e) => {
+			if (e.type !== 'keydown') return true;
+			if (!(e.ctrlKey && e.shiftKey)) return true;
+			if (e.code === 'KeyC' || e.key === 'C' || e.key === 'c') {
+				e.preventDefault();
+				const sel = t.getSelection();
+				if (sel) navigator.clipboard.writeText(sel).catch(() => {});
+				return false;
+			}
+			if (e.code === 'KeyV' || e.key === 'V' || e.key === 'v') {
+				e.preventDefault();
+				navigator.clipboard
+					.readText()
+					.then((text) => {
+						const cleaned = text.replace(/\r\n?/g, '\n');
+						// Submit on newline; otherwise append to buffer + echo.
+						const parts = cleaned.split('\n');
+						for (let i = 0; i < parts.length; i++) {
+							const chunk = parts[i];
+							if (chunk) {
+								buffer += chunk;
+								t.write(chunk);
+							}
+							if (i < parts.length - 1) {
+								// Synthesize an Enter — submit current buffer.
+								t.write('\r\n');
+								const line = buffer;
+								buffer = '';
+								execute(t, line);
+							}
+						}
+					})
+					.catch(() => {});
+				return false;
+			}
+			return true;
+		});
+
 		writeLine(t, `${C.bold}DockVision${C.reset} · signed in as ${C.cyan}${email}${C.reset}`);
 		writeLine(t, `${C.dim}type 'help' for commands, 'whoami' for your account${C.reset}`);
+		writeLine(t, `${C.dim}copy: ⇧⌃C  ·  paste: ⇧⌃V${C.reset}`);
 		writeLine(t);
 		showPrompt(t);
 
@@ -374,9 +422,8 @@
 
 {#if molView}
 	<MolView
-		fileUrl={molView.file}
-		format={molView.format}
-		name={molView.name}
+		structures={molView.structures}
+		title={molView.title}
 		onClose={() => (molView = null)}
 	/>
 {/if}

@@ -11,7 +11,21 @@ export function resolveUserPath(userId: string, cwd: string, input: string): str
 	if (!userId) throw new PathError('no user');
 	const root = `/u/${userId}`;
 
-	const start = input.startsWith('/') ? input : `${cwd || root}/${input}`;
+	// Paths starting with /u/<this-user>/... are taken as-is.
+	// Paths starting with /u/<other>... are rejected.
+	// Paths starting with / but not /u/... are root-relative (/ is the user root).
+	// Other inputs are cwd-relative.
+	let start: string;
+	if (input.startsWith(root + '/') || input === root) {
+		start = input;
+	} else if (input.startsWith('/u/')) {
+		throw new PathError('path escapes user root');
+	} else if (input.startsWith('/')) {
+		start = root + input;
+	} else {
+		start = `${cwd || root}/${input}`;
+	}
+
 	const parts: string[] = [];
 	for (const seg of start.split('/')) {
 		if (seg === '' || seg === '.') continue;
@@ -29,6 +43,14 @@ export function resolveUserPath(userId: string, cwd: string, input: string): str
 		throw new PathError('path escapes user root');
 	}
 	return resolved;
+}
+
+/** Strip the per-user root from a virtual path for display ("/u/1/casp" → "/casp"). */
+export function displayPath(userId: string, virtualPath: string): string {
+	const root = `/u/${userId}`;
+	if (virtualPath === root) return '/';
+	if (virtualPath.startsWith(root + '/')) return virtualPath.slice(root.length);
+	return virtualPath;
 }
 
 /** Convert a virtual path to an S3 key under the per-user prefix. */

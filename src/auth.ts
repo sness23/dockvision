@@ -24,6 +24,21 @@ function buildProviders(): Provider[] {
 				from: env.EMAIL_FROM
 			})
 		);
+	} else if (env.NODE_ENV !== 'production') {
+		// Local dev fallback — log magic links to the server console so you can
+		// click through without configuring SMTP.
+		providers.push(
+			Nodemailer({
+				server: 'smtp://localhost:1025',
+				from: 'no-reply@dockvision.local',
+				sendVerificationRequest({ identifier, url }) {
+					console.log('\n========================================');
+					console.log(`  DEV magic link for ${identifier}`);
+					console.log(`  ${url}`);
+					console.log('========================================\n');
+				}
+			})
+		);
 	}
 
 	if (env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET) {
@@ -52,5 +67,15 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
 	providers: buildProviders(),
 	secret: env.AUTH_SECRET,
 	trustHost: true,
-	pages: { signIn: '/login' }
+	pages: { signIn: '/login' },
+	callbacks: {
+		// pg-adapter passes the DB user as the second arg; surface its id so
+		// /api/cmd can authenticate by session (the email-only default isn't enough).
+		session({ session, user }) {
+			if (user) {
+				(session.user as { id?: string | number }).id = user.id;
+			}
+			return session;
+		}
+	}
 });

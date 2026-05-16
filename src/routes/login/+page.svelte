@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { signIn } from '@auth/sveltekit/client';
+	import { page } from '$app/stores';
 
 	let email = $state('');
 	let submitting = $state(false);
 
+	// Honor ?callbackUrl= so flows like `dvk login` (→ /cli/auth) return correctly.
+	const callbackUrl = $derived($page.url.searchParams.get('callbackUrl') || '/app');
+
 	async function submitEmail(e: SubmitEvent) {
 		e.preventDefault();
 		submitting = true;
-		await signIn('nodemailer', { email, callbackUrl: '/app' });
+		await signIn('nodemailer', { email, callbackUrl });
 	}
 </script>
 
@@ -29,10 +33,10 @@
 	</form>
 
 	<div class="alt">
-		<button class="secondary" onclick={() => signIn('google', { callbackUrl: '/app' })}>
+		<button class="secondary" onclick={() => signIn('google', { callbackUrl })}>
 			continue with Google
 		</button>
-		<button class="secondary" onclick={() => signIn('github', { callbackUrl: '/app' })}>
+		<button class="secondary" onclick={() => signIn('github', { callbackUrl })}>
 			continue with GitHub
 		</button>
 	</div>

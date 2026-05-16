@@ -65,6 +65,7 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 
 	// Resolve path args to S3 keys + presigned GET URLs.
 	const inputUrls: Record<string, string> = {};
+	let firstInputPath: string | undefined;
 	for (const [name, spec] of Object.entries(tool.args)) {
 		if (spec.type !== 'path' || validated[name] === undefined) continue;
 		const virtualPath = resolveUserPath(String(ctx.userId), ctx.cwd, String(validated[name]));
@@ -72,6 +73,16 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 		if (!row) return err(`input not found: ${validated[name]}`);
 		inputUrls[name] = await presignedGet(row.s3_key);
 		validated[name] = virtualPath;
+		if (!firstInputPath) firstInputPath = virtualPath;
+	}
+
+	// Tag drives the /results/<tag>/<tool>/ namespace. Explicit --tag wins;
+	// otherwise infer from the first input's parent dir name
+	// (/u/1/casp/T1146/receptor.pdb → "T1146").
+	let tag: string | null = parsed.tag ? String(parsed.tag) : null;
+	if (!tag && firstInputPath) {
+		const parts = firstInputPath.split('/').filter(Boolean);
+		if (parts.length >= 2) tag = parts[parts.length - 2];
 	}
 
 	const typicalSec = await calibratedTypicalSec(tool);
@@ -93,8 +104,8 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 	const inserted = await query<{ id: string }>(
 		`INSERT INTO jobs
 			(user_id, tool, tool_version, args, gpu_class, runpod_endpoint_id,
-			 status, estimated_cost_cents)
-		 VALUES ($1, $2, $3, $4, $5, $6, 'queued', $7)
+			 status, estimated_cost_cents, tag)
+		 VALUES ($1, $2, $3, $4, $5, $6, 'queued', $7, $8)
 		 RETURNING id`,
 		[
 			ctx.userId,
@@ -103,7 +114,8 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 			JSON.stringify(validated),
 			tool.gpu,
 			endpointId,
-			estimate
+			estimate,
+			tag
 		]
 	);
 	const jobId = inserted[0].id;
@@ -137,6 +149,9 @@ export async function run(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 		{ s: `submitted job ${jobId}`, t: 'ok' },
 		{ s: `tool:      ${tool.displayName} (${tool.name}) on ${tool.gpu}`, t: 'dim' },
 		{ s: `estimate:  ${formatCents(estimate)}  (${typicalSec}s typical × markup)`, t: 'dim' },
+		...(tag
+			? [{ s: `results →  /results/${tag}/${tool.name}/  (on completion)`, t: 'dim' as const }]
+			: []),
 		{ s: '' },
 		{ s: `run 'status ${jobId}' or 'jobs --running' to track.` }
 	];

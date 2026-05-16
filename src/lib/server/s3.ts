@@ -4,6 +4,10 @@ import { env } from '$env/dynamic/private';
 
 export const s3 = new S3Client({
 	region: env.AWS_REGION || 'us-east-1',
+	// S3_ENDPOINT lets us point at MinIO locally (or any S3-compatible service).
+	// forcePathStyle is required for MinIO; harmless for real AWS S3 when no endpoint set.
+	endpoint: env.S3_ENDPOINT || undefined,
+	forcePathStyle: !!env.S3_ENDPOINT,
 	credentials:
 		env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY
 			? {

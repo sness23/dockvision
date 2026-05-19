@@ -3,28 +3,33 @@
 	import { page } from '$app/stores';
 
 	let { children, data } = $props();
+
+	// /app is a fullscreen, chrome-free workspace — no nav header.
+	const isApp = $derived($page.url.pathname === '/app');
 </script>
 
-<header>
-	<nav>
-		<a href="/" class="brand">DockVision</a>
-		<div class="spacer"></div>
-		<a href="/docs">docs</a>
-		<a href="/pricing">pricing</a>
-		<a href="/status">status</a>
-		{#if data.session?.user}
-			<a href="/app">app</a>
-			<a href="/billing">billing</a>
-			<form method="POST" action="/auth/signout" class="inline">
-				<button type="submit" class="secondary">sign out</button>
-			</form>
-		{:else}
-			<a href="/login">sign in</a>
-		{/if}
-	</nav>
-</header>
+{#if !isApp}
+	<header>
+		<nav>
+			<a href="/" class="brand">DockVision</a>
+			<div class="spacer"></div>
+			<a href="/docs">docs</a>
+			<a href="/pricing">pricing</a>
+			<a href="/status">status</a>
+			{#if data.session?.user}
+				<a href="/app">app</a>
+				<a href="/billing">billing</a>
+				<form method="POST" action="/auth/signout" class="inline">
+					<button type="submit" class="secondary">sign out</button>
+				</form>
+			{:else}
+				<a href="/login">sign in</a>
+			{/if}
+		</nav>
+	</header>
+{/if}
 
-<main>
+<main class:fullbleed={isApp}>
 	{@render children()}
 </main>
 
@@ -56,5 +61,12 @@
 		max-width: 1200px;
 		margin: 0 auto;
 		padding: 2em 1.5em;
+	}
+	main.fullbleed {
+		max-width: none;
+		margin: 0;
+		padding: 0;
+		height: 100vh;
+		overflow: hidden;
 	}
 </style>

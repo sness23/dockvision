@@ -16,8 +16,8 @@
 mkdir -p ~/.dockvision && echo {data.key} &gt; ~/.dockvision/api-key</pre>
 
 	<p class="dim">
-		If you started this from <code>dvk login</code>, it should have completed automatically —
-		you can close this tab.
+		If you started this from <code>dvk login</code>, it should have completed automatically — you
+		can close this tab.
 	</p>
 </section>
 

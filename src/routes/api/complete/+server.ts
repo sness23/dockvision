@@ -10,13 +10,44 @@ import { resolveUserPath, PathError } from '$lib/fs/resolve';
 import type { RequestHandler } from './$types';
 
 const COMMANDS = [
-	'ls', 'cd', 'pwd', 'cat', 'view', 'du', 'pin', 'unpin', 'rm', 'upload', 'download',
-	'tools', 'tool', 'run', 'jobs', 'status', 'cancel', 'log',
-	'whoami', 'cost', 'topup', 'keys', 'help', 'clear', 'exit'
+	'ls',
+	'cd',
+	'pwd',
+	'cat',
+	'view',
+	'du',
+	'pin',
+	'unpin',
+	'rm',
+	'upload',
+	'download',
+	'tools',
+	'tool',
+	'run',
+	'jobs',
+	'status',
+	'cancel',
+	'log',
+	'whoami',
+	'cost',
+	'topup',
+	'keys',
+	'help',
+	'clear',
+	'exit'
 ];
 
 const PATH_COMMANDS = new Set([
-	'ls', 'cd', 'cat', 'view', 'du', 'pin', 'unpin', 'rm', 'download', 'upload'
+	'ls',
+	'cd',
+	'cat',
+	'view',
+	'du',
+	'pin',
+	'unpin',
+	'rm',
+	'download',
+	'upload'
 ]);
 
 const Body = z.object({

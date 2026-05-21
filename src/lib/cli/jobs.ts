@@ -193,10 +193,10 @@ export async function list(argv: string[], ctx: CmdContext): Promise<CmdResponse
 
 export async function status(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
 	if (!argv[0]) return err('usage: status <job_id>');
-	const rows = await query<JobRow>(
-		'SELECT * FROM jobs WHERE id = $1 AND user_id = $2',
-		[argv[0], ctx.userId]
-	);
+	const rows = await query<JobRow>('SELECT * FROM jobs WHERE id = $1 AND user_id = $2', [
+		argv[0],
+		ctx.userId
+	]);
 	if (!rows.length) return err('no such job');
 	const r = rows[0];
 	const lines: TextLine[] = [
@@ -229,10 +229,10 @@ export async function status(argv: string[], ctx: CmdContext): Promise<CmdRespon
 
 export async function cancel(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
 	if (!argv[0]) return err('usage: cancel <job_id>');
-	const rows = await query<JobRow>(
-		'SELECT * FROM jobs WHERE id = $1 AND user_id = $2',
-		[argv[0], ctx.userId]
-	);
+	const rows = await query<JobRow>('SELECT * FROM jobs WHERE id = $1 AND user_id = $2', [
+		argv[0],
+		ctx.userId
+	]);
 	if (!rows.length) return err('no such job');
 	const r = rows[0];
 	if (!['queued', 'running'].includes(r.status)) return err(`job is already ${r.status}`);

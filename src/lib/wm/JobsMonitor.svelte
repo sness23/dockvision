@@ -119,11 +119,7 @@
 	});
 </script>
 
-<div
-	class="jobs"
-	role="presentation"
-	onpointerdown={() => wm.focus(leafId)}
->
+<div class="jobs" role="presentation" onpointerdown={() => wm.focus(leafId)}>
 	<div class="bar mono">
 		jobs <span class="dim">· {jobs.length}</span>
 		<span class="grow"></span>

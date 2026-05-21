@@ -30,10 +30,7 @@ export const POST: RequestHandler = async (event) => {
 	// Normalize cwd: '/' or anything outside /u/<userId> becomes the user's root.
 	// CLI shim callers don't know their userId on the first hit, so '/' is the wire default.
 	const userRoot = `/u/${userId}`;
-	const cwd =
-		parsed.data.cwd && parsed.data.cwd.startsWith(userRoot)
-			? parsed.data.cwd
-			: userRoot;
+	const cwd = parsed.data.cwd && parsed.data.cwd.startsWith(userRoot) ? parsed.data.cwd : userRoot;
 
 	const res = await dispatch(parsed.data.line, {
 		userId,

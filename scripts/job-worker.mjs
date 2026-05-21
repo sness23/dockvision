@@ -128,10 +128,10 @@ async function handle(job) {
 	try {
 		submitted = await runpod('POST', endpointId, '/run', { input });
 	} catch (e) {
-		await pool.query(
-			`UPDATE jobs SET status='failed', error=$2, completed_at=now() WHERE id=$1`,
-			[jobId, `runpod submit failed: ${e.message}`]
-		);
+		await pool.query(`UPDATE jobs SET status='failed', error=$2, completed_at=now() WHERE id=$1`, [
+			jobId,
+			`runpod submit failed: ${e.message}`
+		]);
 		throw e;
 	}
 	const runpodJobId = submitted.id;
@@ -149,12 +149,20 @@ async function handle(job) {
 
 		const r = await pool.query('SELECT status FROM jobs WHERE id=$1', [jobId]);
 		if (r.rows[0]?.status === 'cancelled') {
-			try { await runpod('POST', endpointId, `/cancel/${runpodJobId}`); } catch {}
+			try {
+				await runpod('POST', endpointId, `/cancel/${runpodJobId}`);
+			} catch {
+				/* cancel is best-effort */
+			}
 			return;
 		}
 		const bal = await pool.query('SELECT balance_cents FROM users WHERE id=$1', [userId]);
 		if (Number(bal.rows[0]?.balance_cents) < 0) {
-			try { await runpod('POST', endpointId, `/cancel/${runpodJobId}`); } catch {}
+			try {
+				await runpod('POST', endpointId, `/cancel/${runpodJobId}`);
+			} catch {
+				/* cancel is best-effort */
+			}
 			await pool.query(
 				`UPDATE jobs SET status='cancelled', error='balance exhausted', completed_at=now() WHERE id=$1`,
 				[jobId]
@@ -164,10 +172,10 @@ async function handle(job) {
 	}
 
 	if (!last || last.status !== 'COMPLETED') {
-		await pool.query(
-			`UPDATE jobs SET status='failed', error=$2, completed_at=now() WHERE id=$1`,
-			[jobId, last?.error || `terminal status ${last?.status || 'TIMEOUT'} (no charge)`]
-		);
+		await pool.query(`UPDATE jobs SET status='failed', error=$2, completed_at=now() WHERE id=$1`, [
+			jobId,
+			last?.error || `terminal status ${last?.status || 'TIMEOUT'} (no charge)`
+		]);
 		return;
 	}
 
@@ -203,7 +211,13 @@ async function handle(job) {
 		// Aggregate the latest outputs per target under /results/<tag>/<tool>/.
 		await registerResultLinks(client, userId, tag, tool, jobId, registered);
 
-		await debit(client, userId, cost, jobId, `${tool} · ${(executionTimeMs / 1000).toFixed(1)}s on ${gpu}`);
+		await debit(
+			client,
+			userId,
+			cost,
+			jobId,
+			`${tool} · ${(executionTimeMs / 1000).toFixed(1)}s on ${gpu}`
+		);
 		await client.query(
 			`UPDATE jobs SET status='completed', actual_cost_cents=$2, execution_time_ms=$3,
 				output_dir=$4, completed_at=now() WHERE id=$1`,
@@ -213,10 +227,10 @@ async function handle(job) {
 		console.log(`[worker] ${jobId} → completed, billed ${cost}¢, ${fileMetas.length} outputs`);
 	} catch (e) {
 		await client.query('ROLLBACK');
-		await pool.query(
-			`UPDATE jobs SET status='failed', error=$2, completed_at=now() WHERE id=$1`,
-			[jobId, `post-completion error: ${e.message}`]
-		);
+		await pool.query(`UPDATE jobs SET status='failed', error=$2, completed_at=now() WHERE id=$1`, [
+			jobId,
+			`post-completion error: ${e.message}`
+		]);
 		throw e;
 	} finally {
 		client.release();
@@ -229,8 +243,12 @@ async function main() {
 	console.log('[worker] subscribed to docking-jobs');
 
 	await boss.work('docking-jobs', { teamSize: 4, teamConcurrency: 2 }, async (job) => {
-		try { await handle(job); }
-		catch (e) { console.error('[worker] job error', e); throw e; }
+		try {
+			await handle(job);
+		} catch (e) {
+			console.error('[worker] job error', e);
+			throw e;
+		}
 	});
 
 	process.on('SIGTERM', async () => {
@@ -240,4 +258,7 @@ async function main() {
 	});
 }
 
-main().catch((e) => { console.error('[worker] fatal:', e); process.exit(1); });
+main().catch((e) => {
+	console.error('[worker] fatal:', e);
+	process.exit(1);
+});

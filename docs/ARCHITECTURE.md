@@ -23,21 +23,21 @@
 
 ## Stack
 
-| Layer | Choice | Rationale |
-|---|---|---|
-| Frontend | SvelteKit (Svelte 5) | Reuses `casp-viewer` pose components; smaller bundle than React; matches lean aesthetic |
-| Terminal | xterm.js + clipanion parser | Real shell-like UX, real argv parsing (not regex string-splitting) |
-| Pose viewer | Mol* | Industry standard, already in `casp-viewer` |
-| Auth | Auth.js (SvelteKit) | Self-hosted, OSS, sessions in Postgres. Email + Google + GitHub + ORCID. |
-| DB | Postgres on www0 | Single managed instance, RLS-style isolation in app layer |
-| Object store | AWS S3 | Same cloud as www0 (free intra-region transfer); standard tooling |
-| Billing | Stripe Billing | Prepaid balance via Checkout; webhook on top-up |
-| Compute | RunPod Serverless Endpoints (Docker) | Cheapest per-second GPU; exact `executionTime` in response |
-| MSA service | Self-hosted MMseqs2 + ColabFold DB on www0 | Required for Boltz/Protenix; public ColabFold servers won't scale |
-| Job queue | pg-boss (Postgres-backed) | Don't trust RunPod's queue alone; need our own retries + idempotency |
-| Reconciliation | Node cron worker (pm2 process) | Polls RunPod billing API; alerts on drift |
-| Deploy | pm2 on EC2 (www0) | Matches existing convention; supervisord/systemd-equivalent |
-| TLS / proxy | nginx on www0 with Let's Encrypt | Standard |
+| Layer          | Choice                                     | Rationale                                                                               |
+| -------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Frontend       | SvelteKit (Svelte 5)                       | Reuses `casp-viewer` pose components; smaller bundle than React; matches lean aesthetic |
+| Terminal       | xterm.js + clipanion parser                | Real shell-like UX, real argv parsing (not regex string-splitting)                      |
+| Pose viewer    | Mol\*                                      | Industry standard, already in `casp-viewer`                                             |
+| Auth           | Auth.js (SvelteKit)                        | Self-hosted, OSS, sessions in Postgres. Email + Google + GitHub + ORCID.                |
+| DB             | Postgres on www0                           | Single managed instance, RLS-style isolation in app layer                               |
+| Object store   | AWS S3                                     | Same cloud as www0 (free intra-region transfer); standard tooling                       |
+| Billing        | Stripe Billing                             | Prepaid balance via Checkout; webhook on top-up                                         |
+| Compute        | RunPod Serverless Endpoints (Docker)       | Cheapest per-second GPU; exact `executionTime` in response                              |
+| MSA service    | Self-hosted MMseqs2 + ColabFold DB on www0 | Required for Boltz/Protenix; public ColabFold servers won't scale                       |
+| Job queue      | pg-boss (Postgres-backed)                  | Don't trust RunPod's queue alone; need our own retries + idempotency                    |
+| Reconciliation | Node cron worker (pm2 process)             | Polls RunPod billing API; alerts on drift                                               |
+| Deploy         | pm2 on EC2 (www0)                          | Matches existing convention; supervisord/systemd-equivalent                             |
+| TLS / proxy    | nginx on www0 with Let's Encrypt           | Standard                                                                                |
 
 ## System layout
 
@@ -74,7 +74,7 @@ Routes:
 
 The CLI shell at `/app`: xterm.js wired to a single command dispatcher. All
 commands hit `/api/cmd` and return either plain text or a structured response
-(`{type: 'mol-view', file: '...'}` triggers a Mol* modal). WebSocket at `/ws`
+(`{type: 'mol-view', file: '...'}` triggers a Mol\* modal). WebSocket at `/ws`
 streams balance, job status, and a 10-second cost ticker for running jobs.
 
 ### 2. Auth (Auth.js)
@@ -218,22 +218,22 @@ if `users.balance_cents < 0`, send RunPod cancel and mark the job `cancelled`.
 
 One endpoint per tool, each pinned to the right GPU class:
 
-| Tool | GPU | $/sec (RunPod Flex) | Typical runtime |
-|---|---|---|---|
-| gnina | RTX 4090 (24 GB) | $0.000310 | 1-5 min |
-| boltz2 | H100 (80 GB) | $0.00116 | 2-8 min |
-| protenix | H100 (80 GB) | $0.00116 | 3-10 min |
+| Tool     | GPU              | $/sec (RunPod Flex) | Typical runtime |
+| -------- | ---------------- | ------------------- | --------------- |
+| gnina    | RTX 4090 (24 GB) | $0.000310           | 1-5 min         |
+| boltz2   | H100 (80 GB)     | $0.00116            | 2-8 min         |
+| protenix | H100 (80 GB)     | $0.00116            | 3-10 min        |
 
 **Handler contract** — every worker handler must return:
 
 ```json
 {
-  "output_s3_keys": ["jobs/<id>/output/pose_1.sdf", "..."],
-  "cost_seconds": 234.5,
-  "gpu": "h100",
-  "tool_version": "boltz2-2.1.0",
-  "seed": 42,
-  "error": null
+	"output_s3_keys": ["jobs/<id>/output/pose_1.sdf", "..."],
+	"cost_seconds": 234.5,
+	"gpu": "h100",
+	"tool_version": "boltz2-2.1.0",
+	"seed": 42,
+	"error": null
 }
 ```
 
@@ -328,13 +328,13 @@ Server tokenizes with clipanion, validates with zod schemas, dispatches to
 
 ```ts
 type CmdResponse =
-  | { type: 'text', body: string }
-  | { type: 'table', headers: string[], rows: string[][] }
-  | { type: 'mol-view', file: string }
-  | { type: 'error', message: string };
+	| { type: 'text'; body: string }
+	| { type: 'table'; headers: string[]; rows: string[][] }
+	| { type: 'mol-view'; file: string }
+	| { type: 'error'; message: string };
 ```
 
-xterm renders text/table/error inline; `mol-view` triggers a Mol* modal.
+xterm renders text/table/error inline; `mol-view` triggers a Mol\* modal.
 
 ## Filesystem layout (virtual)
 
@@ -364,21 +364,21 @@ xterm renders text/table/error inline; `mol-view` triggers a Mol* modal.
 - **Restricted CLI surface**: no `eval`, no `bash`, no pipes-to-shell. The CLI
   is a finite grammar — see [`CLI.md`](CLI.md).
 - **Worker isolation**: each RunPod handler receives only `{input_urls,
-  output_prefix, args}`. No user identity passed. Outputs uploaded via per-job
+output_prefix, args}`. No user identity passed. Outputs uploaded via per-job
   presigned PUTs scoped to `s3://dockvision-prod/u/<uid>/jobs/<jid>/output/*`.
 - **Rate limits**: 5 concurrent jobs/user; 100 submits/hour/user; 100 GB/file upload.
 - **Input scanning**: ClamAV scan on every upload before marking the `files`
   row valid.
 - **Secrets**: RunPod API key, Stripe secret, Auth.js secret in
   `/etc/dockvision/env` (root-owned, 600). Never in repo.
-- **TLS**: nginx + Let's Encrypt, HSTS, CSP. Mol* CDN allowlisted.
+- **TLS**: nginx + Let's Encrypt, HSTS, CSP. Mol\* CDN allowlisted.
 
 ## Open questions
 
 - Whether to keep Auth.js or swap in Clerk if Auth.js OAuth flows get painful
   (decision deadline: end of Phase 1).
 - Whether to put Postgres on RDS instead of local for backup/PITR convenience.
-- Mol* — host the assets ourselves vs CDN.
+- Mol\* — host the assets ourselves vs CDN.
 - Direct ORCID auth priority (high for academic adoption).
 - Whether to publish the GitHub repo immediately (public from day 1) or after
   Phase 1 stabilizes.

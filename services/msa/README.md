@@ -25,6 +25,7 @@ to the internet).
 ## Bringing up the DB on www0
 
 1. Install MMseqs2:
+
    ```bash
    apt-get install mmseqs2          # ubuntu 22.04+
    # or build from source: https://github.com/soedinglab/MMseqs2
@@ -34,17 +35,20 @@ to the internet).
 
 3. Download a ColabFold-style DB. The smallest useful set is **UniRef30**
    (~340 GB unpacked):
+
    ```bash
    cd /srv/dockvision-msa/db
    wget https://wwwuser.gwdg.de/~compbiol/colabfold/uniref30_2302.tar.gz
    tar xzf uniref30_2302.tar.gz
    mmseqs createindex uniref30 tmp --threads 16
    ```
+
    ColabFold's setup script (see [ColabFold's GitHub](https://github.com/sokrypton/ColabFold))
    downloads this plus `bfd_metaclust_clu_complete_id30` and a PDB MMseqs DB if
    you want full coverage — budget ~700 GB.
 
 4. Confirm:
+
    ```bash
    curl -s http://127.0.0.1:4000/healthz
    # → {"ok":true,"db_present":true}

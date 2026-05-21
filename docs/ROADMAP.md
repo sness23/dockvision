@@ -51,7 +51,7 @@ working with measurable hit rate.
 
 ## Phase 3 — Viewer + polish + CLI shim (week 3)
 
-- [ ] Mol* viewer integration (`view <file.cif>`) — port from `casp-viewer/`
+- [ ] Mol\* viewer integration (`view <file.cif>`) — port from `casp-viewer/`
 - [ ] Wizard mode (`wizard <tool>`) — form fallback
 - [ ] Tab-completion in xterm (commands + path-completion via API)
 - [ ] API key issuance (`keys create`, `keys revoke`)
@@ -91,15 +91,15 @@ end-to-end. `dvk` works from a laptop.
 
 ## Risks tracked
 
-| Risk | Likelihood | Mitigation |
-|---|---|---|
-| RunPod GPU shortage at peak | High | Vast.ai fallback wired in worker; queue depth alerts |
-| Cold start > 2 min on Boltz | High | Network volume w/ baked weights; 1 Active worker if traffic warrants |
-| Stripe chargeback on $10 prepay | Medium | Require email verification; flag suspicious top-ups |
-| Tool license changes mid-flight | Medium | Nightly CI checks upstream LICENSE files; alert on diff |
-| Reconciliation drift > $1/day | Medium | Page on drift; freeze submits until reconciled |
-| User uploads malware as "input" | Low | ClamAV on every S3 upload; strict file-type allowlist |
-| OOM on user-provided huge ligand | Medium | Per-tool input size caps enforced at submit time |
-| www0 EC2 dies | Medium | Daily Postgres backup to S3; runbook for cold restore |
-| MSA index corruption | Low | Quarterly re-download of ColabFold DB; checksums |
-| S3 egress bill spike from public sharing | Medium | No public sharing in v1; rate-limit downloads per user |
+| Risk                                     | Likelihood | Mitigation                                                           |
+| ---------------------------------------- | ---------- | -------------------------------------------------------------------- |
+| RunPod GPU shortage at peak              | High       | Vast.ai fallback wired in worker; queue depth alerts                 |
+| Cold start > 2 min on Boltz              | High       | Network volume w/ baked weights; 1 Active worker if traffic warrants |
+| Stripe chargeback on $10 prepay          | Medium     | Require email verification; flag suspicious top-ups                  |
+| Tool license changes mid-flight          | Medium     | Nightly CI checks upstream LICENSE files; alert on diff              |
+| Reconciliation drift > $1/day            | Medium     | Page on drift; freeze submits until reconciled                       |
+| User uploads malware as "input"          | Low        | ClamAV on every S3 upload; strict file-type allowlist                |
+| OOM on user-provided huge ligand         | Medium     | Per-tool input size caps enforced at submit time                     |
+| www0 EC2 dies                            | Medium     | Daily Postgres backup to S3; runbook for cold restore                |
+| MSA index corruption                     | Low        | Quarterly re-download of ColabFold DB; checksums                     |
+| S3 egress bill spike from public sharing | Medium     | No public sharing in v1; rate-limit downloads per user               |

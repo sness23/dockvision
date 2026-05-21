@@ -120,13 +120,11 @@
 	});
 </script>
 
-<div
-	class="viewer"
-	role="presentation"
-	onpointerdown={() => wm.focus(leafId)}
->
+<div class="viewer" role="presentation" onpointerdown={() => wm.focus(leafId)}>
 	<div class="bar mono">
-		{viewer.title || '(no structure — load via mol-console)'}<span class="hint"> · F2 toggles mol-console</span>
+		{viewer.title || '(no structure — load via mol-console)'}<span class="hint">
+			· F2 toggles mol-console</span
+		>
 	</div>
 	<div bind:this={host} class="host"></div>
 	<MolConsole {mv} visible={consoleVisible} />

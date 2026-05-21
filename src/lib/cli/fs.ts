@@ -47,7 +47,10 @@ export async function ls(argv: string[], ctx: CmdContext): Promise<CmdResponse> 
 		const items = await files.list(ctx.userId, ctx.cwd, path);
 		if (items.length === 0) return text({ s: '(empty)', t: 'dim' });
 		const lines: TextLine[] = items.map((it) => ({
-			s: it.kind === 'dir' ? it.name : `${fmtSize(it.size).padStart(7)}  ${it.pinned ? '*' : ' '} ${it.name}`,
+			s:
+				it.kind === 'dir'
+					? it.name
+					: `${fmtSize(it.size).padStart(7)}  ${it.pinned ? '*' : ' '} ${it.name}`,
 			t: it.kind === 'dir' ? 'normal' : it.pinned ? 'ok' : 'normal'
 		}));
 		return { type: 'text', lines };
@@ -70,7 +73,12 @@ export async function cat(argv: string[], ctx: CmdContext): Promise<CmdResponse>
 		if (!isText && buf.subarray(0, 8000).includes(0)) {
 			return err(`binary file (${fmtSize(Number(row.size_bytes))}). Use 'download ${argv[0]}'.`);
 		}
-		return text(...buf.toString('utf8').split('\n').map((s) => ({ s })));
+		return text(
+			...buf
+				.toString('utf8')
+				.split('\n')
+				.map((s) => ({ s }))
+		);
 	} catch (e) {
 		return err((e as Error).message);
 	}
@@ -146,9 +154,10 @@ export async function view(argv: string[], ctx: CmdContext): Promise<CmdResponse
 			return err((e as Error).message);
 		}
 	}
-	const title = structures.length === 1
-		? structures[0].label
-		: `${structures.length} structures: ${structures.map((s) => s.label).join(', ')}`;
+	const title =
+		structures.length === 1
+			? structures[0].label
+			: `${structures.length} structures: ${structures.map((s) => s.label).join(', ')}`;
 	return { type: 'mol-view', structures, title };
 }
 
@@ -224,7 +233,7 @@ async function viewJob(ctx: CmdContext, jobId: string): Promise<CmdResponse> {
 export async function download(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
 	if (!argv[0]) return err('usage: download <file>');
 	try {
-		const { url, row } = await files.presignDownload(ctx.userId, ctx.cwd, argv[0]);
+		const { url } = await files.presignDownload(ctx.userId, ctx.cwd, argv[0]);
 		return {
 			type: 'redirect',
 			url

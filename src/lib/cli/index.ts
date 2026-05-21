@@ -73,5 +73,10 @@ function helpCmd(query: string): CmdResponse {
 	const lines = Object.entries(COMMANDS).map(([name, e]) => ({
 		s: `  ${name.padEnd(10)} ${e.help}`
 	}));
-	return text({ s: 'commands:' }, ...lines, { s: '' }, { s: "type 'help <cmd>' for one-line detail." });
+	return text(
+		{ s: 'commands:' },
+		...lines,
+		{ s: '' },
+		{ s: "type 'help <cmd>' for one-line detail." }
+	);
 }

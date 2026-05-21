@@ -116,7 +116,10 @@
 			showPrompt(t);
 			return;
 		}
-		writeLine(t, `${C.dim}uploading ${(file.size / 1024).toFixed(1)}K → ${res.targetPath}${C.reset}`);
+		writeLine(
+			t,
+			`${C.dim}uploading ${(file.size / 1024).toFixed(1)}K → ${res.targetPath}${C.reset}`
+		);
 		try {
 			const put = await fetch(res.uploadUrl, {
 				method: 'PUT',
@@ -305,8 +308,14 @@
 		});
 
 		writeLine(t, `${C.bold}DockVision${C.reset} · ${C.cyan}${wm.userEmail}${C.reset}`);
-		writeLine(t, `${C.dim}help · whoami · view <file> opens a pane · close · focus <dir>${C.reset}`);
-		writeLine(t, `${C.dim}panes: alt+arrows focus · alt+shift+arrows resize · alt+w close${C.reset}`);
+		writeLine(
+			t,
+			`${C.dim}help · whoami · view <file> opens a pane · close · focus <dir>${C.reset}`
+		);
+		writeLine(
+			t,
+			`${C.dim}panes: alt+arrows focus · alt+shift+arrows resize · alt+w close${C.reset}`
+		);
 		writeLine(t);
 		showPrompt(t);
 		t.focus(); // ready to type immediately — no click needed
@@ -376,11 +385,7 @@
 	});
 </script>
 
-<div
-	class="term"
-	role="presentation"
-	onpointerdown={() => wm.focus(leafId)}
->
+<div class="term" role="presentation" onpointerdown={() => wm.focus(leafId)}>
 	<div bind:this={termDiv} class="xterm-host"></div>
 </div>
 

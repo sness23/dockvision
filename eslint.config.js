@@ -27,6 +27,19 @@ export default [
 		}
 	},
 	{
-		ignores: ['build/', '.svelte-kit/', 'dist/', 'node_modules/']
+		// Honor `_`-prefixed names as intentionally unused.
+		rules: {
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{
+					argsIgnorePattern: '^_',
+					varsIgnorePattern: '^_',
+					caughtErrorsIgnorePattern: '^_'
+				}
+			]
+		}
+	},
+	{
+		ignores: ['build/', '.svelte-kit/', 'dist/', 'node_modules/', 'static/', 'handlers/_lib/']
 	}
 ];

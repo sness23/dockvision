@@ -20,7 +20,10 @@
 	}
 
 	const wm = new WmStore(loadPersisted());
+	// One-time init from props — userId/email don't change for a logged-in session.
+	/* eslint-disable-next-line svelte/valid-compile */
 	wm.userId = userId;
+	/* eslint-disable-next-line svelte/valid-compile */
 	wm.userEmail = userEmail;
 	setContext('wm', wm);
 

@@ -5,8 +5,8 @@
 <section class="hero">
 	<h1>DockVision</h1>
 	<p class="lede">
-		Open-source, CLI-shaped web platform for protein-ligand docking and co-folding on serverless GPUs.
-		Transparent per-second pricing. CASP-aware from day one.
+		Open-source, CLI-shaped web platform for protein-ligand docking and co-folding on serverless
+		GPUs. Transparent per-second pricing. CASP-aware from day one.
 	</p>
 	<div class="cta">
 		{#if data.session?.user}
@@ -38,8 +38,8 @@
 	<div class="card">
 		<h3>self-host if you want</h3>
 		<p>
-			AGPL-3.0. Bring your own RunPod, Stripe, and S3 — pay providers directly, skip our markup.
-			We sell ergonomics, not access.
+			AGPL-3.0. Bring your own RunPod, Stripe, and S3 — pay providers directly, skip our markup. We
+			sell ergonomics, not access.
 		</p>
 	</div>
 </section>

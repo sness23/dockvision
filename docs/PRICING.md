@@ -24,14 +24,14 @@ Stripe, and S3 — pay providers directly. We sell ergonomics, not access.
 
 ## GPU rates (Flex, RunPod, May 2026)
 
-| GPU | VRAM | $/sec (RunPod) | $/sec (you pay) | $/hr (you pay) |
-|---|---|---|---|---|
-| RTX 4090 | 24 GB | $0.000310 | $0.000465 | $1.67 |
-| L40S | 48 GB | $0.000530 | $0.000795 | $2.86 |
-| A100 80GB | 80 GB | $0.000760 | $0.001140 | $4.10 |
-| H100 80GB | 80 GB | $0.001160 | $0.001740 | $6.27 |
-| H200 | 141 GB | $0.001550 | $0.002325 | $8.37 |
-| B200 | 180 GB | $0.002400 | $0.003600 | $12.96 |
+| GPU       | VRAM   | $/sec (RunPod) | $/sec (you pay) | $/hr (you pay) |
+| --------- | ------ | -------------- | --------------- | -------------- |
+| RTX 4090  | 24 GB  | $0.000310      | $0.000465       | $1.67          |
+| L40S      | 48 GB  | $0.000530      | $0.000795       | $2.86          |
+| A100 80GB | 80 GB  | $0.000760      | $0.001140       | $4.10          |
+| H100 80GB | 80 GB  | $0.001160      | $0.001740       | $6.27          |
+| H200      | 141 GB | $0.001550      | $0.002325       | $8.37          |
+| B200      | 180 GB | $0.002400      | $0.003600       | $12.96         |
 
 Rates re-synced weekly from RunPod's pricing endpoint.
 
@@ -40,11 +40,11 @@ Rates re-synced weekly from RunPod's pricing endpoint.
 Calibrated against CASP15/16 benchmark data from
 `~/data/vaults/casp` — these are real observed costs from prior runs.
 
-| Tool | GPU | Typical runtime | Typical cost (user) |
-|---|---|---|---|
-| GNINA | RTX 4090 | 1-5 min | $0.03 - $0.14 |
-| Boltz-2 | H100 | 2-8 min | $0.21 - $0.84 |
-| Protenix | H100 | 3-10 min | $0.31 - $1.05 |
+| Tool     | GPU      | Typical runtime | Typical cost (user) |
+| -------- | -------- | --------------- | ------------------- |
+| GNINA    | RTX 4090 | 1-5 min         | $0.03 - $0.14       |
+| Boltz-2  | H100     | 2-8 min         | $0.21 - $0.84       |
+| Protenix | H100     | 3-10 min        | $0.31 - $1.05       |
 
 Each tool's landing page shows a live pre-flight estimate based on input
 size at submit time.

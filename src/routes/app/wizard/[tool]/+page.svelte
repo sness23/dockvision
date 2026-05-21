@@ -5,6 +5,8 @@
 	const tool = $derived(data.tool);
 	const entries = $derived(Object.entries(tool.args));
 
+	// One-time read — the wizard's tool spec is fixed by the URL param.
+	/* eslint-disable svelte/valid-compile */
 	let values = $state<Record<string, string>>(
 		Object.fromEntries(
 			Object.entries(data.tool.args).map(([k, spec]) => [
@@ -13,6 +15,7 @@
 			])
 		)
 	);
+	/* eslint-enable svelte/valid-compile */
 	let submitting = $state(false);
 	let result = $state<{ ok: boolean; message: string } | null>(null);
 

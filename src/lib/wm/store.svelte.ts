@@ -2,15 +2,7 @@
 // shared with descendants via Svelte context.
 
 import type { Layout, LeafNode, PaneNode, Orientation, FocusDir, ViewerProps } from './types';
-import {
-	genId,
-	allLeaves,
-	findLeaf,
-	findParent,
-	findSplit,
-	focusInDir,
-	axisOf
-} from './layout';
+import { genId, allLeaves, findLeaf, findParent, findSplit, focusInDir, axisOf } from './layout';
 
 export class WmStore {
 	layout = $state<Layout>({ root: { type: 'leaf', id: '', kind: 'terminal' }, focusedId: '' });

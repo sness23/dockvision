@@ -34,8 +34,8 @@ Return value (response body — small, just metadata):
 ```json
 {
 	"files": [
-		{ "slot": 0, "filename": "poses.sdf",     "size": 12345, "mime": "chemical/x-mdl-sdfile" },
-		{ "slot": 1, "filename": "summary.json",  "size":   234, "mime": "application/json" }
+		{ "slot": 0, "filename": "poses.sdf", "size": 12345, "mime": "chemical/x-mdl-sdfile" },
+		{ "slot": 1, "filename": "summary.json", "size": 234, "mime": "application/json" }
 	],
 	"log_uploaded": true,
 	"cost_seconds": 213.7,
@@ -62,11 +62,11 @@ rate × markup. The handler's `cost_seconds` is informational only.
 
 ## Per-tool handlers
 
-| Dir | Status | GPU | License | Notes |
-|---|---|---|---|---|
-| [`gnina/`](gnina/) | ready | RTX 4090 | Apache-2.0 | No MSA needed |
-| [`boltz2/`](boltz2/) | ready | H100 80GB | check LICENSE | Uses `--use_msa_server` (ColabFold) by default |
-| [`protenix/`](protenix/) | ready | H100 80GB | Apache-2.0 | Uses `protenix prep` MSA server |
+| Dir                      | Status | GPU       | License       | Notes                                          |
+| ------------------------ | ------ | --------- | ------------- | ---------------------------------------------- |
+| [`gnina/`](gnina/)       | ready  | RTX 4090  | Apache-2.0    | No MSA needed                                  |
+| [`boltz2/`](boltz2/)     | ready  | H100 80GB | check LICENSE | Uses `--use_msa_server` (ColabFold) by default |
+| [`protenix/`](protenix/) | ready  | H100 80GB | Apache-2.0    | Uses `protenix prep` MSA server                |
 
 ## Building
 

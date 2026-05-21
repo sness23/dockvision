@@ -3,3 +3,10 @@ node_modules/
 build/
 dist/
 package-lock.json
+
+# vendored assets — keep as-shipped
+static/molstar/
+handlers/_lib/
+
+# big legal text we don't own
+LICENSE

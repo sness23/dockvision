@@ -1,6 +1,6 @@
 import { listTools, getTool, calibratedTypicalSec } from '../server/tools';
 import { estimateCents, formatCents } from '../server/pricing';
-import { text, err, type CmdContext, type CmdResponse, type TextLine } from './types';
+import { err, type CmdContext, type CmdResponse, type TextLine } from './types';
 
 export async function toolsList(_argv: string[], _ctx: CmdContext): Promise<CmdResponse> {
 	const lines: TextLine[] = [

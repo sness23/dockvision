@@ -4,7 +4,7 @@ import { env } from '$env/dynamic/private';
 import { putObject } from '../server/s3';
 import { query } from '../server/db';
 import { s3KeyFor } from '../fs/resolve';
-import { text, err, type CmdContext, type CmdResponse, type TextLine } from './types';
+import { err, type CmdContext, type CmdResponse, type TextLine } from './types';
 
 const CASP_SETS = ['casp15', 'casp16', 'casp17'];
 

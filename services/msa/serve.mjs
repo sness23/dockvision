@@ -14,7 +14,12 @@ import http from 'node:http';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import os from 'node:os';
-import { S3Client, HeadObjectCommand, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+	S3Client,
+	HeadObjectCommand,
+	PutObjectCommand,
+	GetObjectCommand
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 function loadEnv() {
@@ -119,8 +124,10 @@ async function runMmseqs(sequence, workDir) {
 		path.join(MSA_DB_DIR, 'uniref30'),
 		resultDb,
 		tmp,
-		'--threads', MMSEQS_THREADS,
-		'-s', '8'
+		'--threads',
+		MMSEQS_THREADS,
+		'-s',
+		'8'
 	]);
 	await run([
 		'result2msa',
@@ -128,7 +135,8 @@ async function runMmseqs(sequence, workDir) {
 		path.join(MSA_DB_DIR, 'uniref30'),
 		resultDb,
 		a3m,
-		'--msa-format-mode', '6'
+		'--msa-format-mode',
+		'6'
 	]);
 	return a3m;
 }

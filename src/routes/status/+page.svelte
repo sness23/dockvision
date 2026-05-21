@@ -14,7 +14,11 @@
 	<div class="banner" style="border-left-color: {statusColor}">
 		<span class="dot" style="background: {statusColor}"></span>
 		<span class="mono"
-			>{status === 'ok' ? 'all systems normal' : status === 'degraded' ? 'queue backlog' : 'database unreachable'}</span
+			>{status === 'ok'
+				? 'all systems normal'
+				: status === 'degraded'
+					? 'queue backlog'
+					: 'database unreachable'}</span
 		>
 		<span class="grow"></span>
 		<span class="dim">as of {data.generatedAt}</span>
@@ -59,7 +63,9 @@
 						<td>{c.tool}</td>
 						<td>{c.p50_runtime_sec} s</td>
 						<td>{c.sample_count}</td>
-						<td class="dim">{new Date(c.updated_at).toISOString().slice(0, 19).replace('T', ' ')}</td>
+						<td class="dim"
+							>{new Date(c.updated_at).toISOString().slice(0, 19).replace('T', ' ')}</td
+						>
 					</tr>
 				{/each}
 			</tbody>
@@ -76,7 +82,9 @@
 					<span class="badge {a.severity}">{a.severity}</span>
 					<span class="mono">{a.kind}</span>:
 					{a.message}
-					<span class="dim"> · {new Date(a.created_at).toISOString().slice(0, 19).replace('T', ' ')}</span>
+					<span class="dim">
+						· {new Date(a.created_at).toISOString().slice(0, 19).replace('T', ' ')}</span
+					>
 				</li>
 			{/each}
 		</ul>
@@ -88,7 +96,8 @@
 		max-width: 800px;
 		margin: 2em auto;
 	}
-	h1, h2 {
+	h1,
+	h2 {
 		font-family: var(--mono);
 	}
 	h2 {
@@ -106,12 +115,22 @@
 		border-left: 3px solid;
 		border-radius: 4px;
 	}
-	.grow { flex: 1; }
-	.dim { color: var(--fg-dim); }
-	.mono { font-family: var(--mono); }
-	.warn { color: var(--warn); }
+	.grow {
+		flex: 1;
+	}
+	.dim {
+		color: var(--fg-dim);
+	}
+	.mono {
+		font-family: var(--mono);
+	}
+	.warn {
+		color: var(--warn);
+	}
 	.dot {
-		width: 0.6em; height: 0.6em; border-radius: 50%;
+		width: 0.6em;
+		height: 0.6em;
+		border-radius: 50%;
 		display: inline-block;
 	}
 	table {
@@ -119,14 +138,22 @@
 		border-collapse: collapse;
 		font-size: 0.95em;
 	}
-	th, td {
+	th,
+	td {
 		text-align: left;
 		padding: 0.4em 0.8em;
 		border-bottom: 1px solid var(--border);
 	}
-	th { color: var(--fg-dim); font-weight: normal; }
-	ul { padding-left: 1em; }
-	li { margin-bottom: 0.4em; }
+	th {
+		color: var(--fg-dim);
+		font-weight: normal;
+	}
+	ul {
+		padding-left: 1em;
+	}
+	li {
+		margin-bottom: 0.4em;
+	}
 	.badge {
 		display: inline-block;
 		padding: 0.05em 0.4em;
@@ -135,7 +162,16 @@
 		font-family: var(--mono);
 		text-transform: uppercase;
 	}
-	.badge.info  { background: #1f6feb; color: white; }
-	.badge.warn  { background: #d29922; color: #1c1c1c; }
-	.badge.error { background: #f85149; color: white; }
+	.badge.info {
+		background: #1f6feb;
+		color: white;
+	}
+	.badge.warn {
+		background: #d29922;
+		color: #1c1c1c;
+	}
+	.badge.error {
+		background: #f85149;
+		color: white;
+	}
 </style>

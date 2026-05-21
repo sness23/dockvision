@@ -81,7 +81,9 @@ async function ensureCors() {
 		console.log('cors policy applied');
 	} catch (e) {
 		if (e?.Code === 'NotImplemented') {
-			console.log('cors: MinIO allows all origins by default (PutBucketCors NotImplemented — fine)');
+			console.log(
+				'cors: MinIO allows all origins by default (PutBucketCors NotImplemented — fine)'
+			);
 		} else {
 			throw e;
 		}
@@ -90,4 +92,6 @@ async function ensureCors() {
 
 await ensureBucket();
 await ensureCors();
-console.log(`\ndone. minio console: ${ENDPOINT.replace(':9000', ':9001')}  (minioadmin / minioadmin)`);
+console.log(
+	`\ndone. minio console: ${ENDPOINT.replace(':9000', ':9001')}  (minioadmin / minioadmin)`
+);

@@ -66,17 +66,13 @@ create an API key from the web shell at /app:  keys create laptop`);
 }
 
 function quote(s) {
-	if (/^[a-zA-Z0-9_.\-\/=:@]+$/.test(s)) return s;
+	if (/^[a-zA-Z0-9_.\-/=:@]+$/.test(s)) return s;
 	return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
 }
 
 function openBrowser(url) {
 	const cmd =
-		process.platform === 'darwin'
-			? 'open'
-			: process.platform === 'win32'
-				? 'cmd'
-				: 'xdg-open';
+		process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'cmd' : 'xdg-open';
 	const args = process.platform === 'win32' ? ['/c', 'start', '', url] : [url];
 	try {
 		spawn(cmd, args, { stdio: 'ignore', detached: true }).unref();

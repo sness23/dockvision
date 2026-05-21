@@ -18,60 +18,60 @@ dispatched to a typed handler.
 
 ### Filesystem
 
-| Command | Description |
-|---|---|
-| `ls [path]` | List files at path. Defaults to cwd. |
-| `cd <path>` | Change cwd (session-local — stored in client state, sent with each request). |
-| `pwd` | Print cwd. |
-| `cat <file>` | Print file to terminal (text only; binary errors with a hint to use `download` or `view`). |
-| `view <file>` | Open in Mol* viewer (CIF, PDB, SDF). |
-| `du [path]` | Show storage usage. |
-| `rm <path>` | Delete file. Confirms if > 100 MB. |
-| `pin <path>` | Mark file immune from 180-day auto-expiry. |
-| `unpin <path>` | Reverse. |
-| `upload <local-file>` | Upload from local disk (triggers browser file picker; uses presigned S3 PUT). |
-| `download <path>` | Download to local disk (presigned S3 GET). |
-| `mv <src> <dst>` | Rename / move within user FS. |
-| `cp <src> <dst>` | Copy within user FS (S3 server-side copy). |
-| `find <path> [filters]` | Limited find: `--name`, `--mtime`, `--size`. No `-exec`. |
+| Command                 | Description                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| `ls [path]`             | List files at path. Defaults to cwd.                                                       |
+| `cd <path>`             | Change cwd (session-local — stored in client state, sent with each request).               |
+| `pwd`                   | Print cwd.                                                                                 |
+| `cat <file>`            | Print file to terminal (text only; binary errors with a hint to use `download` or `view`). |
+| `view <file>`           | Open in Mol\* viewer (CIF, PDB, SDF).                                                      |
+| `du [path]`             | Show storage usage.                                                                        |
+| `rm <path>`             | Delete file. Confirms if > 100 MB.                                                         |
+| `pin <path>`            | Mark file immune from 180-day auto-expiry.                                                 |
+| `unpin <path>`          | Reverse.                                                                                   |
+| `upload <local-file>`   | Upload from local disk (triggers browser file picker; uses presigned S3 PUT).              |
+| `download <path>`       | Download to local disk (presigned S3 GET).                                                 |
+| `mv <src> <dst>`        | Rename / move within user FS.                                                              |
+| `cp <src> <dst>`        | Copy within user FS (S3 server-side copy).                                                 |
+| `find <path> [filters]` | Limited find: `--name`, `--mtime`, `--size`. No `-exec`.                                   |
 
 ### Jobs
 
-| Command | Description |
-|---|---|
-| `run <tool> [args]` | Submit a docking job. Pre-flight estimate shown; confirm with `y`. |
-| `jobs [--running\|--all]` | List your jobs. |
-| `status <job_id>` | Detailed job status + cost so far. |
-| `cancel <job_id>` | Cancel a running job (RunPod cancel signal). |
-| `log <job_id>` | Stream worker stdout/stderr (WebSocket). |
-| `top` | Live view of running jobs (auto-refresh every 5s). |
-| `history [--limit N]` | Recent job log. |
+| Command                   | Description                                                        |
+| ------------------------- | ------------------------------------------------------------------ |
+| `run <tool> [args]`       | Submit a docking job. Pre-flight estimate shown; confirm with `y`. |
+| `jobs [--running\|--all]` | List your jobs.                                                    |
+| `status <job_id>`         | Detailed job status + cost so far.                                 |
+| `cancel <job_id>`         | Cancel a running job (RunPod cancel signal).                       |
+| `log <job_id>`            | Stream worker stdout/stderr (WebSocket).                           |
+| `top`                     | Live view of running jobs (auto-refresh every 5s).                 |
+| `history [--limit N]`     | Recent job log.                                                    |
 
 ### Billing
 
-| Command | Description |
-|---|---|
-| `cost` | Show current balance + month-to-date spend (compute + storage). |
-| `topup [amount]` | Open Stripe Checkout for prepay (minimum $10). |
-| `bill [--from DATE]` | Itemized billing events. |
+| Command              | Description                                                     |
+| -------------------- | --------------------------------------------------------------- |
+| `cost`               | Show current balance + month-to-date spend (compute + storage). |
+| `topup [amount]`     | Open Stripe Checkout for prepay (minimum $10).                  |
+| `bill [--from DATE]` | Itemized billing events.                                        |
 
 ### Tools
 
-| Command | Description |
-|---|---|
-| `tools` | List available tools + per-tool typical costs. |
-| `tool <name>` | Show tool details, args, license, pre-flight typical. |
+| Command         | Description                                           |
+| --------------- | ----------------------------------------------------- |
+| `tools`         | List available tools + per-tool typical costs.        |
+| `tool <name>`   | Show tool details, args, license, pre-flight typical. |
 | `wizard <tool>` | Form-based fallback for users uncomfortable with CLI. |
 
 ### Account
 
-| Command | Description |
-|---|---|
-| `whoami` | Print user info, balance, storage usage. |
-| `keys` | List/create/revoke API keys. |
-| `help [cmd]` | Help. |
-| `clear` | Clear terminal. |
-| `exit` | Sign out. |
+| Command      | Description                              |
+| ------------ | ---------------------------------------- |
+| `whoami`     | Print user info, balance, storage usage. |
+| `keys`       | List/create/revoke API keys.             |
+| `help [cmd]` | Help.                                    |
+| `clear`      | Clear terminal.                          |
+| `exit`       | Sign out.                                |
 
 ## Tool argument schemas
 

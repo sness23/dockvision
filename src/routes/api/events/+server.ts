@@ -29,7 +29,11 @@ export const GET: RequestHandler = async (event) => {
 			event.request.signal.addEventListener('abort', () => {
 				aborted = true;
 				if (timer) clearTimeout(timer);
-				try { controller.close(); } catch { /* already closed */ }
+				try {
+					controller.close();
+				} catch {
+					/* already closed */
+				}
 			});
 
 			function send(kind: string, data: unknown) {
@@ -98,7 +102,7 @@ export const GET: RequestHandler = async (event) => {
 		headers: {
 			'Content-Type': 'text/event-stream',
 			'Cache-Control': 'no-cache, no-transform',
-			'Connection': 'keep-alive',
+			Connection: 'keep-alive',
 			'X-Accel-Buffering': 'no'
 		}
 	});

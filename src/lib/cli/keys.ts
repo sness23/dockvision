@@ -12,7 +12,7 @@ export async function keys(argv: string[], ctx: CmdContext): Promise<CmdResponse
 	if (sub === 'list') return list(ctx);
 	if (sub === 'create') return create(argv.slice(1), ctx);
 	if (sub === 'revoke') return revoke(argv.slice(1), ctx);
-	return err("usage: keys [list|create <name>|revoke <prefix-or-id>]");
+	return err('usage: keys [list|create <name>|revoke <prefix-or-id>]');
 }
 
 async function list(ctx: CmdContext): Promise<CmdResponse> {

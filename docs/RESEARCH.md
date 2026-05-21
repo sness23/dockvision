@@ -8,14 +8,14 @@ Synthesized 2026-05-12. Sources at bottom.
 
 Pricing (annual, EUR):
 
-| Plan | Price/yr | Credits | Parallel jobs |
-|---|---|---|---|
-| Free | €0 | 1 credit | 2 |
-| Academic Budget | €93.50 | 84 | 7 |
-| Academic Standard | €185.90 | 168 | 14 |
-| Academic | €280.50 | 300 | 30 |
-| Professional | €880 | 720 | 60 |
-| Enterprise A/B/C | €5,500-10,956 | 1,200-4,000 | 5-10 seats |
+| Plan              | Price/yr      | Credits     | Parallel jobs |
+| ----------------- | ------------- | ----------- | ------------- |
+| Free              | €0            | 1 credit    | 2             |
+| Academic Budget   | €93.50        | 84          | 7             |
+| Academic Standard | €185.90       | 168         | 14            |
+| Academic          | €280.50       | 300         | 30            |
+| Professional      | €880          | 720         | 60            |
+| Enterprise A/B/C  | €5,500-10,956 | 1,200-4,000 | 5-10 seats    |
 
 Implied credit cost ≈ **€1.10-1.22 per credit** at academic tier. Credits do not
 expire. Each job shows "Estimated Credits" before launch.
@@ -56,13 +56,13 @@ that happens to host Boltz.
 
 Inferred from Neurosnap credit cost and observed runtimes:
 
-| Tool | Typical runtime (H100) | Suggested user price | Notes |
-|---|---|---|---|
-| Boltz-2 | 2-8 min | $0.20 - $0.80 | Fovus floor = $0.10 |
-| Protenix | 3-10 min | $0.40 - $1.20 | |
-| Chai-1 | 2-6 min | $0.20 - $0.70 | Chai's own playground is free, rate-limited |
-| DynamicBind | 5-20 min | $0.80 - $2.50 | License blocker for commercial |
-| GNINA | 1-5 min (4090 OK) | $0.05 - $0.30 | |
+| Tool        | Typical runtime (H100) | Suggested user price | Notes                                       |
+| ----------- | ---------------------- | -------------------- | ------------------------------------------- |
+| Boltz-2     | 2-8 min                | $0.20 - $0.80        | Fovus floor = $0.10                         |
+| Protenix    | 3-10 min               | $0.40 - $1.20        |                                             |
+| Chai-1      | 2-6 min                | $0.20 - $0.70        | Chai's own playground is free, rate-limited |
+| DynamicBind | 5-20 min               | $0.80 - $2.50        | License blocker for commercial              |
+| GNINA       | 1-5 min (4090 OK)      | $0.05 - $0.30        |                                             |
 
 At our 1.5× cost-plus markup on RunPod Flex:
 
@@ -85,14 +85,14 @@ Three distinct products:
 
 Flex pricing (May 2026):
 
-| GPU | Flex $/sec | Active $/sec | $/hr Flex |
-|---|---|---|---|
-| B200 (180 GB) | $0.00240 | $0.00190 | $8.64 |
-| H200 (141 GB) | $0.00155 | $0.00124 | $5.58 |
-| H100 (80 GB) | $0.00116 | $0.00093 | $4.18 |
-| A100 (80 GB) | $0.00076 | $0.00060 | $2.72 |
-| L40S (48 GB) | $0.00053 | $0.00037 | $1.90 |
-| RTX 4090 (24 GB) | $0.00031 | $0.00021 | $1.10 |
+| GPU              | Flex $/sec | Active $/sec | $/hr Flex |
+| ---------------- | ---------- | ------------ | --------- |
+| B200 (180 GB)    | $0.00240   | $0.00190     | $8.64     |
+| H200 (141 GB)    | $0.00155   | $0.00124     | $5.58     |
+| H100 (80 GB)     | $0.00116   | $0.00093     | $4.18     |
+| A100 (80 GB)     | $0.00076   | $0.00060     | $2.72     |
+| L40S (48 GB)     | $0.00053   | $0.00037     | $1.90     |
+| RTX 4090 (24 GB) | $0.00031   | $0.00021     | $1.10     |
 
 Network volume: $0.07/GB-mo (<1TB), $0.05 (>1TB), $0.14 (high-perf). No egress.
 

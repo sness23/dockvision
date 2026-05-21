@@ -23,17 +23,17 @@ one-click signup, no infra, and a paid 1.5× ergonomics premium over self-hostin
 
 ## Stack at a glance
 
-| Layer | Choice |
-|---|---|
-| Frontend | SvelteKit (Svelte 5) + xterm.js + Mol* |
-| Auth | Auth.js (SvelteKit) — email + OAuth, sessions in Postgres |
-| DB | Postgres on www0 |
-| Object store | AWS S3 |
-| Billing | Stripe Billing + prepaid balance row |
-| Compute | RunPod Serverless Endpoints (one per tool) |
-| MSA | Self-hosted MMseqs2 + ColabFold DB on www0 |
-| Job queue | pg-boss (Postgres-backed) |
-| Deploy | pm2 on EC2 (www0) |
+| Layer        | Choice                                                    |
+| ------------ | --------------------------------------------------------- |
+| Frontend     | SvelteKit (Svelte 5) + xterm.js + Mol\*                   |
+| Auth         | Auth.js (SvelteKit) — email + OAuth, sessions in Postgres |
+| DB           | Postgres on www0                                          |
+| Object store | AWS S3                                                    |
+| Billing      | Stripe Billing + prepaid balance row                      |
+| Compute      | RunPod Serverless Endpoints (one per tool)                |
+| MSA          | Self-hosted MMseqs2 + ColabFold DB on www0                |
+| Job queue    | pg-boss (Postgres-backed)                                 |
+| Deploy       | pm2 on EC2 (www0)                                         |
 
 ## Docs
 

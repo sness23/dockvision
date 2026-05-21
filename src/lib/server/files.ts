@@ -71,10 +71,10 @@ export async function list(
 
 export async function stat(userId: number, cwd: string, input: string): Promise<FileRow | null> {
 	const path = resolveUserPath(String(userId), cwd, input);
-	const rows = await query<FileRow>(
-		'SELECT * FROM files WHERE user_id = $1 AND path = $2',
-		[userId, path]
-	);
+	const rows = await query<FileRow>('SELECT * FROM files WHERE user_id = $1 AND path = $2', [
+		userId,
+		path
+	]);
 	return rows[0] ?? null;
 }
 
@@ -138,10 +138,10 @@ export async function move(
 	if (!srcRow) throw new Error(`no such file: ${srcInput}`);
 	const dstPath = resolveUserPath(String(userId), cwd, dstInput);
 	if (dstPath === srcRow.path) return { srcPath: srcRow.path, dstPath };
-	const existing = await query<FileRow>(
-		'SELECT id FROM files WHERE user_id = $1 AND path = $2',
-		[userId, dstPath]
-	);
+	const existing = await query<FileRow>('SELECT id FROM files WHERE user_id = $1 AND path = $2', [
+		userId,
+		dstPath
+	]);
 	if (existing.length) throw new Error(`destination exists: ${dstInput}`);
 	await query('UPDATE files SET path = $1 WHERE id = $2', [dstPath, srcRow.id]);
 	return { srcPath: srcRow.path, dstPath };
@@ -159,10 +159,10 @@ export async function copy(
 	if (srcRow.links_to) throw new Error('cannot copy a /results/ alias (copy its source instead)');
 	const dstPath = resolveUserPath(String(userId), cwd, dstInput);
 	if (dstPath === srcRow.path) throw new Error('cp: src and dst are the same');
-	const existing = await query<FileRow>(
-		'SELECT id FROM files WHERE user_id = $1 AND path = $2',
-		[userId, dstPath]
-	);
+	const existing = await query<FileRow>('SELECT id FROM files WHERE user_id = $1 AND path = $2', [
+		userId,
+		dstPath
+	]);
 	if (existing.length) throw new Error(`destination exists: ${dstInput}  (use rm first)`);
 	const dstKey = s3KeyFor(String(userId), dstPath);
 	await s3.send(

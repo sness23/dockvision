@@ -23,6 +23,8 @@ const COMMANDS: Record<string, { run: Handler; help: string }> = {
 	pin: { run: fs.pin, help: 'mark file immune from auto-expiry' },
 	unpin: { run: fs.unpin, help: 'reverse pin' },
 	rm: { run: fs.rm, help: 'delete file' },
+	mv: { run: fs.mv, help: 'rename / move a file' },
+	cp: { run: fs.cp, help: 'copy a file (S3 server-side)' },
 	upload: { run: fs.upload, help: 'upload a local file (opens picker)' },
 	download: { run: fs.download, help: 'download a file to local disk' },
 	// tools

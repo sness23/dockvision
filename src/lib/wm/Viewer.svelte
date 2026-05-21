@@ -61,6 +61,8 @@
 		} catch {
 			/* fresh viewer — nothing to clear */
 		}
+		// Empty structures = a restored layout slot. Leave the scene empty; the
+		// title bar shows the placeholder and the mol-console can `load <pdbid>`.
 		for (const s of viewer.structures) {
 			if (mv.loadStructureFromUrl) await mv.loadStructureFromUrl(s.url, s.format);
 		}
@@ -124,7 +126,7 @@
 	onpointerdown={() => wm.focus(leafId)}
 >
 	<div class="bar mono">
-		{viewer.title}<span class="hint"> · F2 toggles mol-console</span>
+		{viewer.title || '(no structure — load via mol-console)'}<span class="hint"> · F2 toggles mol-console</span>
 	</div>
 	<div bind:this={host} class="host"></div>
 	<MolConsole {mv} visible={consoleVisible} />

@@ -151,6 +151,12 @@
 			showPrompt(t);
 			return;
 		}
+		if (trimmed === 'top') {
+			wm.openJobsMonitor();
+			writeLine(t, `${C.dim}→ jobs pane (alt+arrows to move focus)${C.reset}`);
+			showPrompt(t);
+			return;
+		}
 		const focusM = trimmed.match(/^focus\s+(left|right|up|down)$/);
 		if (focusM) {
 			wm.focusDir(focusM[1] as FocusDir);

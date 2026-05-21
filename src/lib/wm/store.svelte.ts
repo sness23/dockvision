@@ -17,9 +17,51 @@ export class WmStore {
 	userId = $state(0);
 	userEmail = $state('');
 
-	constructor() {
-		const id = genId('term');
-		this.layout = { root: { type: 'leaf', id, kind: 'terminal' }, focusedId: id };
+	constructor(persisted?: Layout | null) {
+		const validated = persisted && validateLayout(persisted);
+		if (validated) {
+			this.layout = validated;
+		} else {
+			const id = genId('term');
+			this.layout = { root: { type: 'leaf', id, kind: 'terminal' }, focusedId: id };
+		}
+	}
+
+	/** JSON-serializable snapshot of the layout. Viewer pane content (presigned
+	 *  URLs that expire) is dropped — only kind + title is retained. */
+	serialize(): string {
+		function strip(node: PaneNode): PaneNode {
+			if (node.type === 'leaf') {
+				if (node.kind === 'viewer') {
+					return {
+						type: 'leaf',
+						id: node.id,
+						kind: 'viewer',
+						viewer: { structures: [], title: node.viewer?.title ?? '' }
+					};
+				}
+				return { type: 'leaf', id: node.id, kind: node.kind };
+			}
+			return {
+				type: 'split',
+				id: node.id,
+				orientation: node.orientation,
+				children: node.children.map(strip),
+				sizes: [...node.sizes]
+			};
+		}
+		return JSON.stringify({ root: strip(this.layout.root), focusedId: this.layout.focusedId });
+	}
+
+	openJobsMonitor() {
+		const existing = allLeaves(this.layout.root).find((l) => l.kind === 'jobs');
+		if (existing) {
+			this.layout.focusedId = existing.id;
+			return;
+		}
+		const pane: LeafNode = { type: 'leaf', id: genId('jobs'), kind: 'jobs' };
+		this.splitWith(this.layout.focusedId, 'vertical', pane);
+		this.layout.focusedId = pane.id;
 	}
 
 	get focusedKind(): string {
@@ -136,5 +178,24 @@ export class WmStore {
 			}
 			childId = parent.id;
 		}
+	}
+}
+
+/** Walk a candidate layout — accept only if it has at least one terminal leaf
+ *  and a focused id pointing somewhere real. Repairs the focusedId if it's stale. */
+function validateLayout(parsed: unknown): Layout | null {
+	try {
+		const l = parsed as Layout;
+		if (!l || !l.root) return null;
+		const leaves = allLeaves(l.root);
+		if (!leaves.some((leaf) => leaf.kind === 'terminal')) return null;
+		if (!leaves.some((leaf) => leaf.id === l.focusedId)) {
+			const t = leaves.find((leaf) => leaf.kind === 'terminal');
+			if (!t) return null;
+			l.focusedId = t.id;
+		}
+		return l;
+	} catch {
+		return null;
 	}
 }

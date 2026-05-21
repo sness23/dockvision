@@ -2,7 +2,7 @@
 // and leaf panes. Serializable (no DOM refs, no parent pointers).
 
 export type Orientation = 'horizontal' | 'vertical';
-export type LeafKind = 'terminal' | 'viewer';
+export type LeafKind = 'terminal' | 'viewer' | 'jobs';
 export type FocusDir = 'left' | 'right' | 'up' | 'down';
 
 export interface ViewerProps {

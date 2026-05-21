@@ -6,6 +6,7 @@
 	import PaneTree from './PaneTree.svelte';
 	import Terminal from './Terminal.svelte';
 	import Viewer from './Viewer.svelte';
+	import JobsMonitor from './JobsMonitor.svelte';
 
 	let { node }: { node: PaneNode } = $props();
 	const wm = getContext<WmStore>('wm');
@@ -53,6 +54,8 @@
 			<Terminal leafId={node.id} />
 		{:else if node.kind === 'viewer' && node.viewer}
 			<Viewer leafId={node.id} viewer={node.viewer} />
+		{:else if node.kind === 'jobs'}
+			<JobsMonitor leafId={node.id} />
 		{/if}
 	</div>
 {:else}

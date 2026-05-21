@@ -115,30 +115,58 @@ export async function rm(argv: string[], ctx: CmdContext): Promise<CmdResponse> 
 }
 
 export async function view(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
-	if (!argv[0]) return err('usage: view <file-or-job-dir>');
+	if (!argv[0]) return err('usage: view <file> [more-files...]   |   view <job-dir>');
 
-	let resolved: string;
-	try {
-		resolved = resolveUserPath(String(ctx.userId), ctx.cwd, argv[0]);
-	} catch (e) {
-		if (e instanceof PathError) return err(e.message);
-		throw e;
+	// Single arg might be a job directory.
+	if (argv.length === 1) {
+		let resolved: string;
+		try {
+			resolved = resolveUserPath(String(ctx.userId), ctx.cwd, argv[0]);
+		} catch (e) {
+			if (e instanceof PathError) return err(e.message);
+			throw e;
+		}
+		const jobMatch = resolved.match(/^\/u\/\d+\/jobs\/([0-9a-fA-F-]{36})(?:\/output)?\/?$/);
+		if (jobMatch) return viewJob(ctx, jobMatch[1]);
 	}
 
-	// Job directory — /u/<n>/jobs/<uuid>[/output][/] — load receptor + all poses.
-	const jobMatch = resolved.match(/^\/u\/\d+\/jobs\/([0-9a-fA-F-]{36})(?:\/output)?\/?$/);
-	if (jobMatch) return viewJob(ctx, jobMatch[1]);
-
-	// Single structure file.
-	try {
-		const { url, row } = await files.presignDownload(ctx.userId, ctx.cwd, argv[0]);
-		const fmt = molFormat(row.path);
-		if (!fmt) {
-			const ext = row.path.split('.').pop() ?? '?';
-			return err(`unsupported viewer format: .${ext} (use cif/pdb/sdf/mol)`);
+	// One or more files — overlay them in the same Mol* scene.
+	const structures: { url: string; format: string; label: string }[] = [];
+	for (const pathArg of argv) {
+		try {
+			const { url, row } = await files.presignDownload(ctx.userId, ctx.cwd, pathArg);
+			const fmt = molFormat(row.path);
+			if (!fmt) {
+				const ext = row.path.split('.').pop() ?? '?';
+				return err(`unsupported viewer format for ${pathArg}: .${ext} (use cif/pdb/sdf/mol)`);
+			}
+			const name = row.path.split('/').pop() ?? row.path;
+			structures.push({ url, format: fmt, label: name });
+		} catch (e) {
+			return err((e as Error).message);
 		}
-		const name = row.path.split('/').pop() ?? row.path;
-		return { type: 'mol-view', structures: [{ url, format: fmt, label: name }], title: name };
+	}
+	const title = structures.length === 1
+		? structures[0].label
+		: `${structures.length} structures: ${structures.map((s) => s.label).join(', ')}`;
+	return { type: 'mol-view', structures, title };
+}
+
+export async function mv(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
+	if (argv.length !== 2) return err('usage: mv <src> <dst>');
+	try {
+		const r = await files.move(ctx.userId, ctx.cwd, argv[0], argv[1]);
+		return text({ s: `${r.srcPath} → ${r.dstPath}`, t: 'ok' });
+	} catch (e) {
+		return err((e as Error).message);
+	}
+}
+
+export async function cp(argv: string[], ctx: CmdContext): Promise<CmdResponse> {
+	if (argv.length !== 2) return err('usage: cp <src> <dst>');
+	try {
+		const r = await files.copy(ctx.userId, ctx.cwd, argv[0], argv[1]);
+		return text({ s: `${r.srcPath} → ${r.dstPath}  (${r.size}B)`, t: 'ok' });
 	} catch (e) {
 		return err((e as Error).message);
 	}

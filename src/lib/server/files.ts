@@ -1,6 +1,7 @@
+import { CopyObjectCommand } from '@aws-sdk/client-s3';
 import { query } from './db';
 import { resolveUserPath, s3KeyFor, PathError } from '../fs/resolve';
-import { presignedGet, presignedPut, deleteObject } from './s3';
+import { s3, BUCKET, presignedGet, presignedPut, deleteObject } from './s3';
 
 export interface FileRow {
 	id: string;
@@ -123,6 +124,62 @@ export async function presignDownload(
 	if (!row) throw new Error(`no such file: ${input}`);
 	const url = await presignedGet(row.s3_key);
 	return { url, row };
+}
+
+/** Rename / move a file within the user's virtual fs. S3 object is not moved
+ *  (we just update files.path → the path is virtual, s3_key stays). */
+export async function move(
+	userId: number,
+	cwd: string,
+	srcInput: string,
+	dstInput: string
+): Promise<{ srcPath: string; dstPath: string }> {
+	const srcRow = await stat(userId, cwd, srcInput);
+	if (!srcRow) throw new Error(`no such file: ${srcInput}`);
+	const dstPath = resolveUserPath(String(userId), cwd, dstInput);
+	if (dstPath === srcRow.path) return { srcPath: srcRow.path, dstPath };
+	const existing = await query<FileRow>(
+		'SELECT id FROM files WHERE user_id = $1 AND path = $2',
+		[userId, dstPath]
+	);
+	if (existing.length) throw new Error(`destination exists: ${dstInput}`);
+	await query('UPDATE files SET path = $1 WHERE id = $2', [dstPath, srcRow.id]);
+	return { srcPath: srcRow.path, dstPath };
+}
+
+/** S3 server-side copy + new files row. Storage trigger fires (real bytes count). */
+export async function copy(
+	userId: number,
+	cwd: string,
+	srcInput: string,
+	dstInput: string
+): Promise<{ srcPath: string; dstPath: string; size: number }> {
+	const srcRow = await stat(userId, cwd, srcInput);
+	if (!srcRow) throw new Error(`no such file: ${srcInput}`);
+	if (srcRow.links_to) throw new Error('cannot copy a /results/ alias (copy its source instead)');
+	const dstPath = resolveUserPath(String(userId), cwd, dstInput);
+	if (dstPath === srcRow.path) throw new Error('cp: src and dst are the same');
+	const existing = await query<FileRow>(
+		'SELECT id FROM files WHERE user_id = $1 AND path = $2',
+		[userId, dstPath]
+	);
+	if (existing.length) throw new Error(`destination exists: ${dstInput}  (use rm first)`);
+	const dstKey = s3KeyFor(String(userId), dstPath);
+	await s3.send(
+		new CopyObjectCommand({
+			Bucket: BUCKET,
+			CopySource: `${BUCKET}/${srcRow.s3_key}`,
+			Key: dstKey,
+			ContentType: srcRow.mime ?? 'application/octet-stream',
+			MetadataDirective: 'REPLACE'
+		})
+	);
+	await query(
+		`INSERT INTO files (user_id, path, s3_key, size_bytes, mime, expires_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		[userId, dstPath, dstKey, srcRow.size_bytes, srcRow.mime, expiresAt()]
+	);
+	return { srcPath: srcRow.path, dstPath, size: Number(srcRow.size_bytes) };
 }
 
 export async function setPinned(

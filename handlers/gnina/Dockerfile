@@ -1,5 +1,5 @@
-# GNINA 1.3 on CUDA 12. RunPod Serverless Endpoint compatible.
-FROM gnina/gnina:1.3
+# GNINA 1.3.1 on CUDA 12. RunPod Serverless Endpoint compatible.
+FROM gnina/gnina:v1.3.1
 
 # RunPod handler entrypoint
 ENV DEBIAN_FRONTEND=noninteractive
